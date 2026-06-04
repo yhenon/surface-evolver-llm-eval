@@ -11,13 +11,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY pyproject.toml .
 COPY src ./src
-COPY tasks ./tasks
+COPY tasks_public ./tasks_public
+COPY tasks_private ./tasks_private
 COPY tools/docs ./tools/docs
 
 ENV PYTHONPATH=/app/src
-ENV SE_EVAL_TASK_DIR=/app/tasks
+ENV SE_EVAL_TASK_VISIBILITY=private
 ENV SE_EVOLVER_DOC_DIR=/app/tools/docs
 
 # Configure OpenRouter at runtime:
 # docker run --rm -e OPENROUTER_API_KEY=... -e OPENROUTER_BASELINE=gpt-5.5 se-llm-eval
-CMD ["python", "-m", "se_eval.run_eval", "--task", "cube_basic"]
+CMD ["python", "-m", "se_eval.run_eval"]

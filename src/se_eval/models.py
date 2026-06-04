@@ -13,6 +13,7 @@ class StaticChecks(BaseModel):
     min_bodies: int = 0
     required_substrings: list[str] = Field(default_factory=list)
     required_body_ids: list[int] = Field(default_factory=list)
+    enforce_command_hygiene: bool = True
 
 
 class EvolverMetricCheck(BaseModel):
@@ -31,8 +32,8 @@ class Task(BaseModel):
 
     title: str
     prompt: str
-    public_command_script: str = "quit\n"
-    hidden_command_script: str = "quit\n"
+    public_command_script: str = ""
+    hidden_command_script: str = ""
     static_checks: StaticChecks = Field(default_factory=StaticChecks)
     dynamic_checks: DynamicChecks = Field(default_factory=DynamicChecks)
 

@@ -50,7 +50,9 @@ OPENAI_TOOLS: list[dict[str, Any]] = [
             "name": "run_surface_evolver",
             "description": (
                 "Run a candidate Surface Evolver .fe datafile with a command "
-                "script. Use this to validate syntax and debug Evolver behavior."
+                "script, or with the task's public_command_script when "
+                "command_script is empty or omitted. Use this to validate syntax "
+                "and debug Evolver behavior."
             ),
             "parameters": {
                 "type": "object",
@@ -63,8 +65,13 @@ OPENAI_TOOLS: list[dict[str, Any]] = [
                         "type": "string",
                         "description": (
                             "Surface Evolver commands to run after loading the file. "
-                            "Use simple validation/evolution commands. A quit command "
-                            "will be appended if absent."
+                            "Pass an empty string to use the task's "
+                            "public_command_script; if this field is omitted by a "
+                            "provider, the eval uses public_command_script as the "
+                            "fallback. "
+                            "Use this script to call commands such as gogo when "
+                            "validating. Do not put quit in the .fe file; the runner "
+                            "will append a quit command to this script if absent."
                         ),
                     },
                 },

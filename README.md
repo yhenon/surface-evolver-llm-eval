@@ -28,6 +28,14 @@ feedback to produce a real artifact. The final submission is not scraped from
 Markdown or prose; it must arrive as a structured tool call containing the raw
 file content.
 
+Submitted `.fe` files should describe the starting geometry and may define
+reusable Evolver commands such as `gogo := { ... }`. They must not execute
+commands while loading: no `quit`, bare `gogo`, `refine`, `g`, `print`, or
+similar top-level commands. A bare `read` marker may be used before command
+definitions, but not to execute another command file. Public and hidden command
+scripts decide when to run refinement or measurement steps, and the runner
+appends `quit` automatically.
+
 ## How A Run Works
 
 For each model and task, `se_eval.run_eval` performs two stages:
@@ -84,6 +92,7 @@ docker run --rm \
   -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
   -v "$PWD/runs:/app/runs" \
   se-llm-eval python -m se_eval.run_eval \
+    --task-visibility public \
     --task two_bubbles_2d \
     --baseline deepseek
 ```
@@ -126,13 +135,22 @@ Run a smoke check that does not call a model:
 PYTHONPATH=src uv run python -m se_eval.run_eval --list-baselines
 ```
 
-Run a full eval locally:
+Run a full eval locally with the default private task set:
 
 ```bash
 OPENROUTER_API_KEY=... \
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --task cube_basic \
   --baseline gpt-5.5
+```
+
+Run a public task locally:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.run_eval \
+  --task-visibility public \
+  --task two_bubbles_2d \
+  --baseline deepseek
 ```
 
 ## Models
@@ -181,6 +199,7 @@ Supported environment variables:
 - `OPENROUTER_HTTP_REFERER`
 - `OPENROUTER_APP_TITLE`
 - `EVOLVER_BIN`
+- `SE_EVAL_TASK_VISIBILITY`
 - `SE_EVAL_TASK_DIR`
 - `SE_EVOLVER_DOC_DIR`
 
@@ -226,12 +245,19 @@ PYTHONPATH=src uv run python -m se_eval.run_eval \
 
 ## Tasks
 
-Tasks are JSON files in `tasks/`. A task defines:
+Tasks are JSON files in `tasks_public/` and `tasks_private/`. Use
+`--task-visibility public` or `--task-visibility private` to select which set to
+load. Private is the default. `--task-dir` or `SE_EVAL_TASK_DIR` can still point
+at an explicit directory and takes precedence over task visibility.
+
+A task defines:
 
 - `id`, `title`, and the user-facing `prompt`.
-- `public_command_script`, which the model may use while debugging.
+- `public_command_script`, which `run_surface_evolver` uses when a tool call
+  leaves `command_script` empty or omitted.
 - `hidden_command_script`, which the grader runs before metric checks.
-- `static_checks`, such as minimum element counts and required substrings.
+- `static_checks`, such as minimum element counts, required substrings, and
+  command hygiene for submitted datafiles.
 - `dynamic_checks.evolver_metrics`, which are Evolver expressions with expected
   values and tolerances.
 
@@ -243,12 +269,16 @@ Example task families currently include:
 - `bridge_two_plates`: build a liquid bridge between two constrained plates
   with contact-angle energy and content integrals.
 
-To add a task, create `tasks/<task_id>.json`, make the public validation script
-useful but not exhaustive, and put the real acceptance criteria in hidden
-Evolver metric checks. Then run:
+To add a task, create `tasks_public/<task_id>.json` or
+`tasks_private/<task_id>.json`, make the public validation script useful but not
+exhaustive, and put the real acceptance criteria in hidden Evolver metric
+checks. Then run:
 
 ```bash
-PYTHONPATH=src uv run python -m se_eval.run_eval --task <task_id> --baseline deepseek
+PYTHONPATH=src uv run python -m se_eval.run_eval \
+  --task-visibility public \
+  --task <task_id> \
+  --baseline deepseek
 ```
 
 ## Documentation Tool

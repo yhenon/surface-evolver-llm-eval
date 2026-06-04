@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
+
+from .fe_hygiene import fe_command_hygiene_failures
 
 
 def find_evolver() -> str:
@@ -33,8 +36,7 @@ def find_evolver() -> str:
 
 def _ensure_quit(command_script: str) -> str:
     script = command_script.strip() + "\n"
-    lowered = script.lower()
-    if "\nquit" not in lowered and "\nq" not in lowered and not lowered.startswith("quit"):
+    if not re.search(r"(?im)^\s*(?:q|quit)\s*;?\s*$", script):
         script += "quit\n"
     return script
 
@@ -52,6 +54,18 @@ def run_surface_evolver(
     not the shell command line. In production, run this inside a locked-down
     container with CPU/memory/time limits.
     """
+    hygiene_failures = fe_command_hygiene_failures(fe_content)
+    if hygiene_failures:
+        return {
+            "ok": False,
+            "timed_out": False,
+            "exit_code": None,
+            "stdout": "",
+            "stderr": "\n".join(hygiene_failures),
+            "argv": [],
+            "hygiene_failures": hygiene_failures,
+        }
+
     evolver = find_evolver()
     with tempfile.TemporaryDirectory(prefix="se_eval_") as tmp:
         tmpdir = Path(tmp)

@@ -7,3 +7,5 @@ __pycache__/
 .openrouter_key
 runs/
 tasks_private/
+ground_truth_fe/
+evolver

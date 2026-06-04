@@ -16,6 +16,15 @@ from .tools import OPENAI_TOOLS, execute_tool
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_BASELINE = "gpt-5.5"
+DEFAULT_TASK_VISIBILITY = "private"
+TASK_VISIBILITY_DIRS = {
+    "public": "tasks_public",
+    "private": "tasks_private",
+}
+DEFAULT_TASKS = {
+    "public": "two_bubbles_2d",
+    "private": "cube_basic",
+}
 BASELINE_MODELS = {
     "gpt-5.5": "openai/gpt-5.5",
     "gemini-flash": "google/gemini-3.5-flash",
@@ -25,7 +34,10 @@ BASELINE_MODELS = {
     "arcee": "arcee-ai/trinity-large-thinking",
     "qwen": "qwen/qwen3.6-35b-a3b",
     "kimi": "moonshotai/kimi-k2.6",
-    "gemma": "google/gemma-4-31b-it"
+    "gemma": "google/gemma-4-31b-it",
+    "grok": "x-ai/grok-build-0.1",
+    "anthropic": "anthropic/claude-opus-4.8",
+    "minimax": "minimax/minimax-m3"
 }
 REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
 
@@ -37,6 +49,8 @@ Rules:
 - The final answer must be made by calling submit_fe_file with complete .fe content.
 - Do not submit Markdown fences. Submit raw file content only.
 - Prefer simple, idiomatic Surface Evolver syntax.
+- Do not put quit, q, or top-level evolution/print commands in the .fe file.
+- If a task needs reusable Evolver commands, define them as gogo := { ... } in the .fe file, but do not call gogo there. Validation and grading scripts decide when to run it.
 """
 
 
@@ -129,7 +143,13 @@ def generate_submission(
                 f"Task: {task.title}\n\n"
                 f"{task.prompt}\n\n"
                 f"Public validation command script you may use:\n"
-                f"{task.public_command_script}"
+                f"{task.public_command_script}\n"
+                "A run_surface_evolver call uses this public script when its "
+                "command_script argument is empty or omitted. "
+                "This script is external to the .fe file. You may run it with "
+                "run_surface_evolver, but do not paste its commands into the "
+                "submitted datafile except for reusable command definitions such "
+                "as gogo := { ... }."
             ),
         },
     ]
@@ -300,6 +320,16 @@ def print_baselines() -> None:
     print(json.dumps(BASELINE_MODELS, indent=2))
 
 
+def resolve_task_dir(task_dir: str | None, task_visibility: str) -> Path:
+    if task_dir:
+        return Path(task_dir)
+    return Path(TASK_VISIBILITY_DIRS[task_visibility])
+
+
+def resolve_task_id(task_id: str | None, task_visibility: str) -> str:
+    return task_id or DEFAULT_TASKS[task_visibility]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -314,8 +344,21 @@ def main() -> None:
         type=Path,
         help="Existing run directory or .fe path. Required with --stage grade.",
     )
-    parser.add_argument("--task", default="cube_basic")
-    parser.add_argument("--task-dir", default=os.environ.get("SE_EVAL_TASK_DIR", "tasks"))
+    parser.add_argument("--task")
+    parser.add_argument(
+        "--task-visibility",
+        choices=tuple(TASK_VISIBILITY_DIRS),
+        default=os.environ.get("SE_EVAL_TASK_VISIBILITY", DEFAULT_TASK_VISIBILITY),
+        help=(
+            "Task set to load when --task-dir/SE_EVAL_TASK_DIR is not set. "
+            "Defaults to private."
+        ),
+    )
+    parser.add_argument(
+        "--task-dir",
+        default=os.environ.get("SE_EVAL_TASK_DIR"),
+        help="Explicit task JSON directory. Overrides --task-visibility.",
+    )
     parser.add_argument("--out-root", default="runs")
     parser.add_argument("--out-dir", type=Path, help="Output directory for generate/all.")
     parser.add_argument("--output", type=Path, help="Grade JSON output path for --stage grade.")
@@ -356,7 +399,10 @@ def main() -> None:
     if args.baseline not in BASELINE_MODELS:
         raise SystemExit(f"--baseline must be one of: {', '.join(BASELINE_MODELS)}")
 
-    task = Task.load(args.task, Path(args.task_dir))
+    task = Task.load(
+        resolve_task_id(args.task, args.task_visibility),
+        resolve_task_dir(args.task_dir, args.task_visibility),
+    )
 
     if args.stage == "grade":
         if args.input is None:

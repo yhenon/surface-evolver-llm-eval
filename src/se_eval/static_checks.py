@@ -3,17 +3,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .fe_hygiene import fe_command_hygiene_failures, strip_comments
 from .models import StaticChecks
 
 
 SECTION_NAMES = ("vertices", "edges", "faces", "facets", "bodies")
-
-
-def strip_comments(text: str) -> str:
-    # Good enough for eval hygiene; Surface Evolver itself remains the authority.
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-    text = re.sub(r"//.*?$", "", text, flags=re.MULTILINE)
-    return text
 
 
 def count_section_rows(fe_content: str) -> dict[str, int]:
@@ -99,6 +93,9 @@ def run_static_checks(fe_content: str, checks: StaticChecks) -> StaticCheckResul
     for body_id in checks.required_body_ids:
         if body_id not in ids["bodies"]:
             failures.append(f"missing required body id: {body_id}")
+
+    if checks.enforce_command_hygiene:
+        failures.extend(fe_command_hygiene_failures(fe_content))
 
     return StaticCheckResult(
         ok=not failures,
