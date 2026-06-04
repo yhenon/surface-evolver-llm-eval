@@ -315,7 +315,7 @@ def main() -> None:
         help="Existing run directory or .fe path. Required with --stage grade.",
     )
     parser.add_argument("--task", default="cube_basic")
-    parser.add_argument("--task-dir", default="tasks")
+    parser.add_argument("--task-dir", default=os.environ.get("SE_EVAL_TASK_DIR", "tasks"))
     parser.add_argument("--out-root", default="runs")
     parser.add_argument("--out-dir", type=Path, help="Output directory for generate/all.")
     parser.add_argument("--output", type=Path, help="Grade JSON output path for --stage grade.")
