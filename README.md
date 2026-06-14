@@ -243,6 +243,112 @@ PYTHONPATH=src uv run python -m se_eval.run_eval \
   path/to/submission.fe
 ```
 
+## Matrix Runs
+
+Use `se_eval.run_matrix` to run selected models across the public and private
+task sets, grade each submission, and consolidate compact outcomes for later
+plotting.
+
+Preview the full matrix without calling models:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.run_matrix \
+  --baseline deepseek \
+  --task-visibility all \
+  --dry-run
+```
+
+Run selected baselines on all public and private tasks:
+
+```bash
+OPENROUTER_API_KEY=... \
+PYTHONPATH=src uv run python -m se_eval.run_matrix \
+  --baseline deepseek \
+  --baseline mistral \
+  --task-visibility all
+```
+
+Each matrix run writes task/model run directories under
+`runs/<timestamp>_matrix/`, plus:
+
+- `outcomes.jsonl`: one compact row per task/model pair, suitable for pandas or
+  plotting scripts.
+- `summary.json`: aggregate pass rates and mean scores by model and by task,
+  rewritten after each completed run.
+
+Useful options include `--model <openrouter/model-id>` for exact model ids,
+`--all-baselines`, repeated `--task <task_id>` filters, `--skip-existing` for
+resuming a matrix directory, and `--results-file` / `--summary-file` for custom
+consolidated output paths. When `--reasoning-effort` is set, each task/model run
+directory includes `_reasoning-<effort>` and outcome rows include both
+`reasoning_effort` and `model_run_label`.
+
+## Plotting Results
+
+Use `se_eval.plot_results` to join one or more matrix run directories and create
+plot-ready merged data plus SVG charts.
+
+Plot a single matrix run:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.plot_results \
+  runs/20260610T131829Z_matrix \
+  --output-dir runs/20260610T131829Z_matrix/plots
+```
+
+Join all matrix runs under `runs/`:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.plot_results \
+  --output-dir runs/plots
+```
+
+Join selected matrix runs:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.plot_results \
+  runs/20260610T131829Z_matrix \
+  runs/<another_timestamp>_matrix \
+  --output-dir runs/joined_plots
+```
+
+The plotting script writes:
+
+- `index.html`: a small local report embedding the charts.
+- `by_model.svg`: pass rate and mean score by model.
+- `by_task.svg`: pass rate and mean score by task.
+- `task_model_heatmap.svg`: mean score for each task/model pair.
+- `merged_outcomes.jsonl` and `merged_outcomes.csv`: joined row-level data.
+- `aggregates.json`: aggregate statistics by model and by task.
+
+## Rescoring Existing Runs
+
+When grading criteria change, use `se_eval.rescore_results` to re-run only the
+deterministic grader on saved `submission.fe` files. This does not call models or
+spend LLM credits.
+
+Preview a rescore for one task/model pair:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.rescore_results \
+  runs/20260610T131829Z_matrix \
+  --task two_bubbles_2d \
+  --model gpt-5.5 \
+  --dry-run
+```
+
+Rescore all rows in all matrix runs under `runs/`:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.rescore_results
+```
+
+The rescore command overwrites each run's `result.json`, rewrites the source
+`outcomes.jsonl`, and refreshes `summary.json`. By default it creates
+`.bak-<timestamp>` copies of `outcomes.jsonl` and `summary.json` before
+rewriting them. After rescoring, run `se_eval.plot_results` again to regenerate
+joined plots.
+
 ## Tasks
 
 Tasks are JSON files in `tasks_public/` and `tasks_private/`. Use
@@ -268,6 +374,8 @@ Example task families currently include:
   enclosed areas and one shared internal edge.
 - `bridge_two_plates`: build a liquid bridge between two constrained plates
   with contact-angle energy and content integrals.
+- `bridge_three_plates`: build a liquid bridge touching three vertical plates
+  arranged symmetrically at 120 degrees.
 
 To add a task, create `tasks_public/<task_id>.json` or
 `tasks_private/<task_id>.json`, make the public validation script useful but not

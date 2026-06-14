@@ -45,7 +45,7 @@ def run_surface_evolver(
     fe_content: str,
     command_script: str = "quit\n",
     timeout_s: float = 10.0,
-    max_output_chars: int = 20_000,
+    max_output_chars: int = 200_000,
 ) -> dict[str, Any]:
     """
     Run Surface Evolver on an in-memory .fe file.

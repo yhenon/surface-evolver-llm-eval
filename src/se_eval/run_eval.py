@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 from datetime import datetime, timezone
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ DEFAULT_TASKS = {
 BASELINE_MODELS = {
     "gpt-5.5": "openai/gpt-5.5",
     "gemini-flash": "google/gemini-3.5-flash",
+    "gemini-pro": "google/gemini-3.1-pro-preview",
     "deepseek": "deepseek/deepseek-v4-pro",
     "mistral": "mistralai/mistral-medium-3-5",
     "poolside": "poolside/laguna-m.1:free",
@@ -40,6 +42,7 @@ BASELINE_MODELS = {
     "minimax": "minimax/minimax-m3"
 }
 REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
+RESPONSE_PREVIEW_CHARS = 4000
 
 SYSTEM_PROMPT = """You are being evaluated on your ability to write valid Surface Evolver .fe files.
 
@@ -125,6 +128,94 @@ def add_token_usage(totals: dict[str, int], usage: dict[str, Any], prefix: str =
             add_token_usage(totals=totals, usage=value, prefix=full_key)
 
 
+class CompletionResponseError(RuntimeError):
+    def __init__(self, message: str, diagnostic_path: Path) -> None:
+        super().__init__(message)
+        self.diagnostic_path = diagnostic_path
+
+
+def text_preview(text: str, max_chars: int = RESPONSE_PREVIEW_CHARS) -> dict[str, Any]:
+    if len(text) <= max_chars * 2:
+        return {"truncated": False, "text": text}
+    return {
+        "truncated": True,
+        "head": text[:max_chars],
+        "tail": text[-max_chars:],
+    }
+
+
+def write_malformed_response_diagnostic(
+    *,
+    out_dir: Path,
+    round_idx: int,
+    raw_response: Any,
+    exc: JSONDecodeError,
+) -> Path:
+    http_response = raw_response.http_response
+    body = http_response.content
+    body_text = body.decode(http_response.encoding or "utf-8", errors="replace")
+    diagnostic = {
+        "error": "Malformed JSON response from chat completion provider.",
+        "exception": str(exc),
+        "json_error": {
+            "message": exc.msg,
+            "line": exc.lineno,
+            "column": exc.colno,
+            "position": exc.pos,
+        },
+        "round": round_idx,
+        "status_code": http_response.status_code,
+        "reason_phrase": http_response.reason_phrase,
+        "url": str(http_response.url),
+        "headers": {
+            "content-type": http_response.headers.get("content-type"),
+            "content-length": http_response.headers.get("content-length"),
+            "x-request-id": http_response.headers.get("x-request-id"),
+            "cf-ray": http_response.headers.get("cf-ray"),
+        },
+        "body_bytes": len(body),
+        "body_preview": text_preview(body_text),
+    }
+    path = out_dir / f"malformed_response_round_{round_idx}.json"
+    path.write_text(json.dumps(diagnostic, indent=2, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def create_chat_completion(
+    *,
+    client: OpenAI,
+    out_dir: Path,
+    round_idx: int,
+    model: str,
+    messages: list[dict[str, Any]],
+    reasoning_effort: str | None,
+) -> Any:
+    raw_response = client.chat.completions.with_raw_response.create(
+        model=model,
+        messages=messages,
+        tools=OPENAI_TOOLS,
+        tool_choice="auto",
+        parallel_tool_calls=False,
+        extra_body=reasoning_body(reasoning_effort),
+    )
+    try:
+        return raw_response.parse()
+    except JSONDecodeError as exc:
+        diagnostic_path = write_malformed_response_diagnostic(
+            out_dir=out_dir,
+            round_idx=round_idx,
+            raw_response=raw_response,
+            exc=exc,
+        )
+        raise CompletionResponseError(
+            (
+                "Provider returned malformed JSON for chat completion "
+                f"round {round_idx}; wrote diagnostic to {diagnostic_path}."
+            ),
+            diagnostic_path=diagnostic_path,
+        ) from exc
+
+
 def generate_submission(
     task: Task,
     out_dir: Path,
@@ -157,6 +248,7 @@ def generate_submission(
     transcript: list[dict[str, Any]] = []
     submitted_fe: str | None = None
     rounds_used = 0
+    generation_error: str | None = None
     token_usage_totals: dict[str, int] = {}
     per_round_usage: list[dict[str, Any]] = []
 
@@ -169,15 +261,27 @@ def generate_submission(
         messages.append(round_status_message)
 
         print(f"Round {current_round}/{max_rounds}, sending request...")
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=OPENAI_TOOLS,
-            tool_choice="auto",
-            parallel_tool_calls=False,
-            extra_body=reasoning_body(reasoning_effort),
-        )
         rounds_used = current_round
+        try:
+            response = create_chat_completion(
+                client=client,
+                out_dir=out_dir,
+                round_idx=current_round,
+                model=model,
+                messages=messages,
+                reasoning_effort=reasoning_effort,
+            )
+        except CompletionResponseError as exc:
+            generation_error = str(exc)
+            transcript.append({
+                "role": "error",
+                "round": current_round,
+                "error": str(exc),
+                "diagnostic_path": str(exc.diagnostic_path),
+            })
+            submitted_fe = None
+            break
+
         usage = response_usage_dict(response)
         if usage is not None:
             add_token_usage(token_usage_totals, usage)
@@ -255,7 +359,11 @@ def generate_submission(
         "submission_path": str(out_dir / "submission.fe") if submitted_fe is not None else None,
         "transcript_path": str(out_dir / "transcript.json"),
         "generation_path": str(out_dir / "generation.json"),
-        "error": None if submitted_fe is not None else f"No submit_fe_file call after {max_rounds} rounds.",
+        "error": (
+            None
+            if submitted_fe is not None
+            else generation_error or f"No submit_fe_file call after {max_rounds} rounds."
+        ),
     }
     (out_dir / "generation.json").write_text(
         json.dumps(generation, indent=2, ensure_ascii=False),
@@ -398,6 +506,11 @@ def main() -> None:
         raise SystemExit(f"--reasoning-effort must be one of: {', '.join(REASONING_EFFORTS)}")
     if args.baseline not in BASELINE_MODELS:
         raise SystemExit(f"--baseline must be one of: {', '.join(BASELINE_MODELS)}")
+    if args.stage != "grade" and args.input is not None:
+        raise SystemExit(
+            "Positional input is only valid with --stage grade. "
+            f"Unexpected input for --stage {args.stage}: {args.input}"
+        )
 
     task = Task.load(
         resolve_task_id(args.task, args.task_visibility),
