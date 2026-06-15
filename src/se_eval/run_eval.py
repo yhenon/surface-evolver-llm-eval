@@ -35,7 +35,7 @@ BASELINE_MODELS = {
     "poolside": "poolside/laguna-m.1:free",
     "arcee": "arcee-ai/trinity-large-thinking",
     "qwen": "qwen/qwen3.6-35b-a3b",
-    "kimi": "moonshotai/kimi-k2.6",
+    "kimi": "moonshotai/kimi-k2.7-code",
     "gemma": "google/gemma-4-31b-it",
     "grok": "x-ai/grok-build-0.1",
     "anthropic": "anthropic/claude-opus-4.8",
