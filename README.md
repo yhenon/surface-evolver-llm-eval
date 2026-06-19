@@ -337,12 +337,9 @@ The plotting script writes:
 ## Publishing The GitHub Pages Site
 
 The public web page lives in `docs/` and is deployed by
-`.github/workflows/pages.yml`. The page reads its metrics and model table from
-`docs/data/aggregates.json`, and the charts are copied from the generated plot
-artifacts. The refresh script also embeds the current aggregate snapshot in
-`docs/index.html` so local file previews still show numbers if the browser
-blocks `fetch()` for local JSON files. Row-level CSV and JSONL files are not
-published for now.
+`.github/workflows/pages.yml`. The charts are copied from the generated plot
+artifacts, and `docs/data/aggregates.json` is published as the compact aggregate
+snapshot. Row-level CSV and JSONL files are not published for now.
 
 After adding tasks, models, or new matrix runs, refresh the site assets with:
 

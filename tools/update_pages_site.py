@@ -11,8 +11,6 @@ from pathlib import Path
 
 CHARTS = ("by_model.svg", "by_task.svg", "task_model_heatmap.svg")
 DATA_FILES = ("aggregates.json",)
-EMBED_START = '<script id="aggregate-data" type="application/json">'
-EMBED_END = "</script>"
 
 
 def copy_file(source: Path, destination: Path) -> None:
@@ -31,25 +29,6 @@ def validate_aggregates(path: Path) -> dict[str, object]:
     if missing:
         raise ValueError(f"{path} is missing required keys: {', '.join(missing)}")
     return payload
-
-
-def update_embedded_aggregates(index_path: Path, aggregates: dict[str, object]) -> None:
-    html = index_path.read_text(encoding="utf-8")
-    start = html.find(EMBED_START)
-    if start == -1:
-        raise ValueError(f"{index_path} is missing the aggregate-data script tag")
-
-    payload_start = start + len(EMBED_START)
-    payload_end = html.find(EMBED_END, payload_start)
-    if payload_end == -1:
-        raise ValueError(f"{index_path} has an unterminated aggregate-data script tag")
-
-    payload = json.dumps(aggregates, separators=(",", ":"), ensure_ascii=False)
-    payload = payload.replace("</", "<\\/")
-    index_path.write_text(
-        f"{html[:payload_start]}{payload}{html[payload_end:]}",
-        encoding="utf-8",
-    )
 
 
 def run_plotter(args: argparse.Namespace) -> None:
@@ -110,7 +89,6 @@ def main() -> None:
         copy_file(args.plots_dir / name, data_dir / name)
 
     aggregates = validate_aggregates(data_dir / "aggregates.json")
-    update_embedded_aggregates(args.docs_dir / "index.html", aggregates)
     print(
         json.dumps(
             {
@@ -120,7 +98,6 @@ def main() -> None:
                 "passed": aggregates["passed"],
                 "mean_score": aggregates["mean_score"],
                 "copied": [*CHARTS, *DATA_FILES],
-                "updated": [str(args.docs_dir / "index.html")],
             },
             indent=2,
         )
