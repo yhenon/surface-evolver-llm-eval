@@ -334,6 +334,40 @@ The plotting script writes:
 - `merged_outcomes.jsonl` and `merged_outcomes.csv`: joined row-level data.
 - `aggregates.json`: aggregate statistics by model and by task.
 
+## Publishing The GitHub Pages Site
+
+The public web page lives in `docs/` and is deployed by
+`.github/workflows/pages.yml`. The page reads its metrics and model table from
+`docs/data/aggregates.json`, and the charts are copied from the generated plot
+artifacts. The refresh script also embeds the current aggregate snapshot in
+`docs/index.html` so local file previews still show numbers if the browser
+blocks `fetch()` for local JSON files. Row-level CSV and JSONL files are not
+published for now.
+
+After adding tasks, models, or new matrix runs, refresh the site assets with:
+
+```bash
+PYTHONPATH=src uv run python tools/update_pages_site.py --replot
+```
+
+That command regenerates `runs/plots/` from the current matrix runs under
+`runs/`, then copies the public chart and aggregate artifacts into:
+
+- `docs/assets/charts/`
+- `docs/data/`
+
+To publish a specific set of matrix directories instead of every
+`runs/*_matrix` directory, pass them after `--replot`:
+
+```bash
+PYTHONPATH=src uv run python tools/update_pages_site.py --replot \
+  runs/20260617T073617Z_matrix \
+  runs/20260618T101305Z_matrix
+```
+
+Commit the changed files in `docs/` and push to `main`; the Pages workflow will
+deploy the updated static site.
+
 ## Rescoring Existing Runs
 
 When grading criteria change, use `se_eval.rescore_results` to re-run only the

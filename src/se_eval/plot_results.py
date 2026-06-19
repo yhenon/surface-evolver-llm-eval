@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+from .models import Task
+
 
 Outcome = dict[str, Any]
 
@@ -19,6 +21,7 @@ SUMMARY_FIELDS = (
     "started_at",
     "task_visibility",
     "task_id",
+    "task_public_label",
     "task_key",
     "model_label",
     "model_run_label",
@@ -141,14 +144,41 @@ def dedupe_outcomes(outcomes: Iterable[Outcome]) -> list[Outcome]:
     return sorted(by_key.values(), key=lambda row: int(row.get("_input_order", 0)))
 
 
-def task_key(row: Outcome) -> str:
+TaskLabels = dict[tuple[str, str], str]
+
+
+def load_task_labels(public_task_dir: Path, private_task_dir: Path) -> TaskLabels:
+    labels: TaskLabels = {}
+    for visibility, task_dir in (("public", public_task_dir), ("private", private_task_dir)):
+        if not task_dir.exists():
+            continue
+        for path in sorted(task_dir.glob("*.json")):
+            task = Task.model_validate_json(path.read_text(encoding="utf-8"))
+            if task.public_label:
+                labels[(visibility, task.id)] = task.public_label
+    return labels
+
+
+def task_key(row: Outcome, task_labels: TaskLabels | None = None) -> str:
     visibility = row.get("task_visibility") or "unknown"
     task_id = row.get("task_id") or "unknown"
+    row_label = row.get("task_public_label") or row.get("public_label")
+    if row_label:
+        return f"{visibility}/{row_label}"
+    if task_labels:
+        label = task_labels.get((str(visibility), str(task_id)))
+        if label:
+            return f"{visibility}/{label}"
     return f"{visibility}/{task_id}"
 
 
 def model_key(row: Outcome) -> str:
-    return str(row.get("model_run_label") or row.get("model_label") or row.get("model"))
+    model = str(row.get("model") or row.get("model_run_label") or row.get("model_label"))
+    label = model.rsplit("/", 1)[-1]
+    reasoning_effort = row.get("reasoning_effort")
+    if reasoning_effort and reasoning_effort != "na":
+        return f"{label} ({reasoning_effort})"
+    return label
 
 
 def provider_for_row(row: Outcome) -> str | None:
@@ -177,10 +207,10 @@ def token_total(row: Outcome) -> int | None:
     return int(value) if isinstance(value, int | float) else None
 
 
-def aggregate_by(outcomes: list[Outcome], key_name: str) -> list[Aggregate]:
+def aggregate_by(outcomes: list[Outcome], key_name: str, task_labels: TaskLabels) -> list[Aggregate]:
     buckets: dict[str, list[Outcome]] = defaultdict(list)
     for row in outcomes:
-        key = task_key(row) if key_name == "task" else model_key(row)
+        key = task_key(row, task_labels) if key_name == "task" else model_key(row)
         buckets[key].append(row)
 
     aggregates: list[Aggregate] = []
@@ -206,10 +236,10 @@ def aggregate_by(outcomes: list[Outcome], key_name: str) -> list[Aggregate]:
     return sorted(aggregates, key=lambda agg: (-agg.pass_rate, -agg.mean_score, agg.key))
 
 
-def aggregate_task_model(outcomes: list[Outcome]) -> dict[str, dict[str, Aggregate]]:
+def aggregate_task_model(outcomes: list[Outcome], task_labels: TaskLabels) -> dict[str, dict[str, Aggregate]]:
     buckets: dict[str, dict[str, list[Outcome]]] = defaultdict(lambda: defaultdict(list))
     for row in outcomes:
-        buckets[task_key(row)][model_key(row)].append(row)
+        buckets[task_key(row, task_labels)][model_key(row)].append(row)
 
     result: dict[str, dict[str, Aggregate]] = {}
     for task, model_rows in buckets.items():
@@ -246,16 +276,17 @@ def write_jsonl(path: Path, rows: list[Outcome]) -> None:
             handle.write(json.dumps(clean, ensure_ascii=False) + "\n")
 
 
-def csv_row(row: Outcome) -> dict[str, Any]:
+def csv_row(row: Outcome, task_labels: TaskLabels) -> dict[str, Any]:
     usage = row.get("token_usage") or {}
     return {
         "matrix_id": row.get("matrix_id"),
         "started_at": row.get("started_at"),
         "task_visibility": row.get("task_visibility"),
         "task_id": row.get("task_id"),
-        "task_key": task_key(row),
+        "task_public_label": row.get("task_public_label"),
+        "task_key": task_key(row, task_labels),
         "model_label": row.get("model_label"),
-        "model_run_label": row.get("model_run_label") or model_key(row),
+        "model_run_label": model_key(row),
         "baseline": row.get("baseline"),
         "model": row.get("model"),
         "reasoning_effort": row.get("reasoning_effort"),
@@ -276,13 +307,13 @@ def csv_row(row: Outcome) -> dict[str, Any]:
     }
 
 
-def write_csv(path: Path, rows: list[Outcome]) -> None:
+def write_csv(path: Path, rows: list[Outcome], task_labels: TaskLabels) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=SUMMARY_FIELDS)
         writer.writeheader()
         for row in rows:
-            writer.writerow(csv_row(row))
+            writer.writerow(csv_row(row, task_labels))
 
 
 def aggregate_payload(aggregates: list[Aggregate]) -> list[dict[str, Any]]:
@@ -577,6 +608,8 @@ def parse_args() -> argparse.Namespace:
         help="Root used for default discovery when no inputs are passed.",
     )
     parser.add_argument("--output-dir", type=Path, default=Path("runs/plots"))
+    parser.add_argument("--public-task-dir", type=Path, default=Path("tasks_public"))
+    parser.add_argument("--private-task-dir", type=Path, default=Path("tasks_private"))
     parser.add_argument(
         "--icon-dir",
         type=Path,
@@ -605,9 +638,10 @@ def main() -> None:
         raise SystemExit("No outcome rows found.")
 
     output_dir = args.output_dir
-    model_aggregates = aggregate_by(outcomes, "model")
-    task_aggregates = aggregate_by(outcomes, "task")
-    task_model = aggregate_task_model(outcomes)
+    task_labels = load_task_labels(args.public_task_dir, args.private_task_dir)
+    model_aggregates = aggregate_by(outcomes, "model", task_labels)
+    task_aggregates = aggregate_by(outcomes, "task", task_labels)
+    task_model = aggregate_task_model(outcomes, task_labels)
     icons = load_provider_icons(None if args.no_icons else args.icon_dir)
 
     merged_jsonl = output_dir / "merged_outcomes.jsonl"
@@ -619,7 +653,7 @@ def main() -> None:
     report_html = output_dir / "index.html"
 
     write_jsonl(merged_jsonl, outcomes)
-    write_csv(merged_csv, outcomes)
+    write_csv(merged_csv, outcomes, task_labels)
     write_json(
         aggregates_json,
         {

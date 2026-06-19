@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="929" height="626" viewBox="0 0 929 626">
+<rect width="100%" height="100%" fill="#fbfcfd"/>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}</style>
+<text x="24.00" y="34.00" font-size="20" font-weight="700" text-anchor="start" fill="#18202a">Results By Task</text>
+<text x="189.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#475467">Pass rate</text>
+<text x="271.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#98a2b3">Mean score</text>
+<text x="727.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#475467">Outcome</text>
+<line x1="189.00" y1="60" x2="189.00" y2="584" stroke="#e3e7eb"/>
+<text x="189.00" y="606.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">0%</text>
+<line x1="319.00" y1="60" x2="319.00" y2="584" stroke="#e3e7eb"/>
+<text x="319.00" y="606.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">25%</text>
+<line x1="449.00" y1="60" x2="449.00" y2="584" stroke="#e3e7eb"/>
+<text x="449.00" y="606.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">50%</text>
+<line x1="579.00" y1="60" x2="579.00" y2="584" stroke="#e3e7eb"/>
+<text x="579.00" y="606.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">75%</text>
+<line x1="709.00" y1="60" x2="709.00" y2="584" stroke="#e3e7eb"/>
+<text x="709.00" y="606.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">100%</text>
+<text x="24.00" y="98.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">public/two_bubbles_2d</text>
+<rect x="189" y="79" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="97" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="79" width="462.22" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="97" width="462.22" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="100.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">8/9 pass, score 0.89</text>
+<text x="24.00" y="144.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/droplet_01</text>
+<rect x="189" y="125" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="143" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="125" width="288.89" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="143" width="329.33" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="146.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">5/9 pass, score 0.63</text>
+<text x="24.00" y="190.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/droplet_00</text>
+<rect x="189" y="171" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="189" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="171" width="173.33" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="189" width="294.67" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="192.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">3/9 pass, score 0.57</text>
+<text x="24.00" y="236.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/droplet_03</text>
+<rect x="189" y="217" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="235" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="217" width="115.56" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="235" width="219.56" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="238.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">2/9 pass, score 0.42</text>
+<text x="24.00" y="282.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/groove_01</text>
+<rect x="189" y="263" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="281" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="263" width="115.56" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="281" width="184.89" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="284.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">2/9 pass, score 0.36</text>
+<text x="24.00" y="328.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/droplet_02</text>
+<rect x="189" y="309" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="327" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="309" width="57.78" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="327" width="236.89" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="330.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">1/9 pass, score 0.46</text>
+<text x="24.00" y="374.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_01</text>
+<rect x="189" y="355" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="373" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="355" width="57.78" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="373" width="213.78" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="376.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">1/9 pass, score 0.41</text>
+<text x="24.00" y="420.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_03</text>
+<rect x="189" y="401" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="419" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="401" width="57.78" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="419" width="179.11" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="422.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">1/9 pass, score 0.34</text>
+<text x="24.00" y="466.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_00</text>
+<rect x="189" y="447" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="465" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="447" width="57.78" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="465" width="127.11" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="468.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">1/9 pass, score 0.24</text>
+<text x="24.00" y="512.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_04</text>
+<rect x="189" y="493" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="511" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="493" width="0.00" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="511" width="173.33" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="514.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">0/9 pass, score 0.33</text>
+<text x="24.00" y="558.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_02</text>
+<rect x="189" y="539" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="557" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="539" width="0.00" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="557" width="138.67" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="560.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">0/9 pass, score 0.27</text>
+</svg>

@@ -27,6 +27,7 @@ class TaskSpec:
     visibility: str
     task_id: str
     path: Path
+    public_label: str | None = None
 
 
 @dataclass(frozen=True)
@@ -51,10 +52,18 @@ def iter_task_specs(
             raise FileNotFoundError(f"Task directory does not exist: {task_dir}")
 
         for path in sorted(task_dir.glob("*.json")):
-            task_id = path.stem
+            task = Task.load(path.stem, task_dir)
+            task_id = task.id
             if task_ids is not None and task_id not in task_ids:
                 continue
-            specs.append(TaskSpec(visibility=visibility, task_id=task_id, path=path))
+            specs.append(
+                TaskSpec(
+                    visibility=visibility,
+                    task_id=task_id,
+                    path=path,
+                    public_label=task.public_label,
+                )
+            )
 
     if not specs:
         filters = sorted(task_ids) if task_ids is not None else "all"
@@ -169,6 +178,7 @@ def summarize_outcome(
         "duration_s": round(duration_s, 3),
         "task_visibility": task_spec.visibility,
         "task_id": task_spec.task_id,
+        "task_public_label": task_spec.public_label,
         "task_path": str(task_spec.path),
         "model_label": model_spec.label,
         "model_run_label": model_run_label(model_spec, reasoning_effort),
@@ -362,6 +372,7 @@ def main() -> None:
         {
             "task_visibility": task.visibility,
             "task_id": task.task_id,
+            "task_public_label": task.public_label,
             "model_label": model.label,
             "model_run_label": model_run_label(model, reasoning_effort),
             "baseline": model.baseline,

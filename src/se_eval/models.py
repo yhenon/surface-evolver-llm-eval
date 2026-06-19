@@ -31,6 +31,7 @@ class Task(BaseModel):
     id: str
 
     title: str
+    public_label: str | None = None
     prompt: str
     public_command_script: str = ""
     hidden_command_script: str = ""

@@ -1,0 +1,215 @@
+{
+  "runs": 99,
+  "passed": 24,
+  "mean_score": 0.44747474747474747,
+  "by_model": [
+    {
+      "key": "gpt-5.5",
+      "runs": 11,
+      "passed": 7,
+      "pass_rate": 0.6363636363636364,
+      "mean_score": 0.8,
+      "mean_duration_s": 210.48327272727272,
+      "mean_total_tokens": 90224.27272727272,
+      "provider": "openai"
+    },
+    {
+      "key": "kimi-k2.7-code",
+      "runs": 11,
+      "passed": 5,
+      "pass_rate": 0.45454545454545453,
+      "mean_score": 0.6181818181818182,
+      "mean_duration_s": 1388.2076363636363,
+      "mean_total_tokens": 206182.54545454544,
+      "provider": "kimi"
+    },
+    {
+      "key": "gemini-3.5-flash",
+      "runs": 11,
+      "passed": 4,
+      "pass_rate": 0.36363636363636365,
+      "mean_score": 0.6090909090909091,
+      "mean_duration_s": 106.08981818181819,
+      "mean_total_tokens": 132881.63636363635,
+      "provider": "gemini"
+    },
+    {
+      "key": "minimax-m3",
+      "runs": 11,
+      "passed": 2,
+      "pass_rate": 0.18181818181818182,
+      "mean_score": 0.5545454545454546,
+      "mean_duration_s": 1109.6046363636362,
+      "mean_total_tokens": 304073.45454545453,
+      "provider": "minimax"
+    },
+    {
+      "key": "qwen3.6-35b-a3b",
+      "runs": 11,
+      "passed": 2,
+      "pass_rate": 0.18181818181818182,
+      "mean_score": 0.45454545454545453,
+      "mean_duration_s": 1207.2476363636363,
+      "mean_total_tokens": 217101.6,
+      "provider": "qwen"
+    },
+    {
+      "key": "deepseek-v4-pro",
+      "runs": 11,
+      "passed": 2,
+      "pass_rate": 0.18181818181818182,
+      "mean_score": 0.3727272727272727,
+      "mean_duration_s": 449.8030909090909,
+      "mean_total_tokens": 270995.6,
+      "provider": "deepseek"
+    },
+    {
+      "key": "gemma-4-31b-it",
+      "runs": 11,
+      "passed": 1,
+      "pass_rate": 0.09090909090909091,
+      "mean_score": 0.3090909090909091,
+      "mean_duration_s": 258.1859090909091,
+      "mean_total_tokens": 62385.90909090909,
+      "provider": "gemma"
+    },
+    {
+      "key": "mistral-medium-3-5",
+      "runs": 11,
+      "passed": 1,
+      "pass_rate": 0.09090909090909091,
+      "mean_score": 0.2,
+      "mean_duration_s": 114.57672727272728,
+      "mean_total_tokens": 101480.36363636363,
+      "provider": "mistral"
+    },
+    {
+      "key": "trinity-large-thinking",
+      "runs": 11,
+      "passed": 0,
+      "pass_rate": 0.0,
+      "mean_score": 0.10909090909090909,
+      "mean_duration_s": 659.3469090909091,
+      "mean_total_tokens": 138133.88888888888,
+      "provider": "arcee"
+    }
+  ],
+  "by_task": [
+    {
+      "key": "public/two_bubbles_2d",
+      "runs": 9,
+      "passed": 8,
+      "pass_rate": 0.8888888888888888,
+      "mean_score": 0.8888888888888888,
+      "mean_duration_s": 100.40366666666667,
+      "mean_total_tokens": 120043.22222222222,
+      "provider": null
+    },
+    {
+      "key": "private/droplet_01",
+      "runs": 9,
+      "passed": 5,
+      "pass_rate": 0.5555555555555556,
+      "mean_score": 0.6333333333333333,
+      "mean_duration_s": 129.47233333333332,
+      "mean_total_tokens": 93249.625,
+      "provider": null
+    },
+    {
+      "key": "private/droplet_00",
+      "runs": 9,
+      "passed": 3,
+      "pass_rate": 0.3333333333333333,
+      "mean_score": 0.5666666666666667,
+      "mean_duration_s": 565.215,
+      "mean_total_tokens": 168795.22222222222,
+      "provider": null
+    },
+    {
+      "key": "private/droplet_03",
+      "runs": 9,
+      "passed": 2,
+      "pass_rate": 0.2222222222222222,
+      "mean_score": 0.4222222222222222,
+      "mean_duration_s": 470.23066666666665,
+      "mean_total_tokens": 182322.66666666666,
+      "provider": null
+    },
+    {
+      "key": "private/groove_01",
+      "runs": 9,
+      "passed": 2,
+      "pass_rate": 0.2222222222222222,
+      "mean_score": 0.35555555555555557,
+      "mean_duration_s": 1032.9586666666667,
+      "mean_total_tokens": 253840.55555555556,
+      "provider": null
+    },
+    {
+      "key": "private/droplet_02",
+      "runs": 9,
+      "passed": 1,
+      "pass_rate": 0.1111111111111111,
+      "mean_score": 0.4555555555555555,
+      "mean_duration_s": 592.1151111111111,
+      "mean_total_tokens": 144292.55555555556,
+      "provider": null
+    },
+    {
+      "key": "private/bridge_01",
+      "runs": 9,
+      "passed": 1,
+      "pass_rate": 0.1111111111111111,
+      "mean_score": 0.4111111111111111,
+      "mean_duration_s": 442.42966666666666,
+      "mean_total_tokens": 150076.88888888888,
+      "provider": null
+    },
+    {
+      "key": "private/bridge_03",
+      "runs": 9,
+      "passed": 1,
+      "pass_rate": 0.1111111111111111,
+      "mean_score": 0.34444444444444444,
+      "mean_duration_s": 1005.803888888889,
+      "mean_total_tokens": 164741.75,
+      "provider": null
+    },
+    {
+      "key": "private/bridge_00",
+      "runs": 9,
+      "passed": 1,
+      "pass_rate": 0.1111111111111111,
+      "mean_score": 0.24444444444444446,
+      "mean_duration_s": 698.9883333333332,
+      "mean_total_tokens": 120742.5,
+      "provider": null
+    },
+    {
+      "key": "private/bridge_04",
+      "runs": 9,
+      "passed": 0,
+      "pass_rate": 0.0,
+      "mean_score": 0.3333333333333333,
+      "mean_duration_s": 1007.3222222222222,
+      "mean_total_tokens": 182080.0,
+      "provider": null
+    },
+    {
+      "key": "private/bridge_02",
+      "runs": 9,
+      "passed": 0,
+      "pass_rate": 0.0,
+      "mean_score": 0.26666666666666666,
+      "mean_duration_s": 681.6162222222223,
+      "mean_total_tokens": 259204.0,
+      "provider": null
+    }
+  ],
+  "inputs": [
+    "runs/20260617T073617Z_matrix",
+    "runs/20260617T115909Z_matrix",
+    "runs/20260617T135128Z_matrix",
+    "runs/20260618T101305Z_matrix"
+  ]
+}
