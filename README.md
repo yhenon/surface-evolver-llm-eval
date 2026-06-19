@@ -283,10 +283,23 @@ consolidated output paths. When `--reasoning-effort` is set, each task/model run
 directory includes `_reasoning-<effort>` and outcome rows include both
 `reasoning_effort` and `model_run_label`.
 
+To compare multiple reasoning efforts in one matrix, pass a comma-separated list
+or repeat the option. Use `na` for a run that omits reasoning controls:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.run_matrix \
+  --baseline gpt-5.5 \
+  --task-visibility all \
+  --reasoning-effort high,na,low
+```
+
 ## Plotting Results
 
 Use `se_eval.plot_results` to join one or more matrix run directories and create
-plot-ready merged data plus SVG charts.
+plot-ready merged data plus SVG charts. If an `icons/` directory is present, the
+plotter embeds provider PNG icons in the SVG charts and colors model bars by
+provider. Use `--icon-dir <path>` to point at another icon directory, or
+`--no-icons` to disable embedding.
 
 Plot a single matrix run:
 

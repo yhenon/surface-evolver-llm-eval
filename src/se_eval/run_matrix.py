@@ -36,6 +36,9 @@ class ModelSpec:
     baseline: str | None = None
 
 
+NO_REASONING_EFFORT_ALIASES = {"na", "n/a", "default", "unset"}
+
+
 def iter_task_specs(
     visibilities: list[str],
     task_ids: set[str] | None,
@@ -100,6 +103,35 @@ def selected_models(args: argparse.Namespace) -> list[ModelSpec]:
         deduped.append(spec)
 
     return deduped
+
+
+def selected_reasoning_efforts(args: argparse.Namespace) -> list[str | None]:
+    raw_efforts = args.reasoning_effort or []
+    if not raw_efforts:
+        return [None]
+
+    efforts: list[str | None] = []
+    seen: set[str | None] = set()
+    valid_efforts = set(REASONING_EFFORTS)
+    for raw_group in raw_efforts:
+        for raw_effort in raw_group.split(","):
+            effort = raw_effort.strip().lower()
+            if not effort:
+                raise SystemExit("--reasoning-effort contains an empty value.")
+            if effort in NO_REASONING_EFFORT_ALIASES:
+                normalized: str | None = None
+            elif effort in valid_efforts:
+                normalized = effort
+            else:
+                valid_values = ", ".join([*REASONING_EFFORTS, "na"])
+                raise SystemExit(f"--reasoning-effort must contain only: {valid_values}")
+
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            efforts.append(normalized)
+
+    return efforts
 
 
 def model_run_label(model: ModelSpec, reasoning_effort: str | None) -> str:
@@ -263,8 +295,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--reasoning-effort",
-        choices=REASONING_EFFORTS,
-        help="Optional OpenRouter reasoning effort for models that support thinking tokens.",
+        "--reasoning_effort",
+        action="append",
+        help=(
+            "Optional OpenRouter reasoning effort for models that support thinking tokens. "
+            "Repeat or pass a comma-separated list to expand the matrix, e.g. high,na,low. "
+            "Use na to omit reasoning controls for that run."
+        ),
     )
     parser.add_argument("--max-rounds", type=int, default=8)
     parser.add_argument("--out-root", type=Path, default=Path("runs"))
@@ -319,20 +356,22 @@ def main() -> None:
         task_dirs=task_dirs,
     )
     models = selected_models(args)
+    reasoning_efforts = selected_reasoning_efforts(args)
 
     planned = [
         {
             "task_visibility": task.visibility,
             "task_id": task.task_id,
             "model_label": model.label,
-            "model_run_label": model_run_label(model, args.reasoning_effort),
+            "model_run_label": model_run_label(model, reasoning_effort),
             "baseline": model.baseline,
             "model": model.model,
-            "reasoning_effort": args.reasoning_effort,
-            "out_dir": str(run_dir(matrix_dir, task, model, args.reasoning_effort)),
+            "reasoning_effort": reasoning_effort,
+            "out_dir": str(run_dir(matrix_dir, task, model, reasoning_effort)),
         }
         for task in tasks
         for model in models
+        for reasoning_effort in reasoning_efforts
     ]
 
     if args.dry_run:
@@ -357,13 +396,21 @@ def main() -> None:
             for model in models
             if model.label == item["model_label"] and model.model == item["model"]
         )
+        reasoning_effort = item["reasoning_effort"]
         out_dir = Path(item["out_dir"])
 
         if args.skip_existing and (out_dir / "result.json").exists():
-            print(f"Skipping existing run: {task_spec.visibility}/{task_spec.task_id} :: {model_spec.label}")
+            print(
+                "Skipping existing run: "
+                f"{task_spec.visibility}/{task_spec.task_id} :: "
+                f"{model_run_label(model_spec, reasoning_effort)}"
+            )
             continue
 
-        print(f"Running {task_spec.visibility}/{task_spec.task_id} :: {model_spec.label}")
+        print(
+            f"Running {task_spec.visibility}/{task_spec.task_id} :: "
+            f"{model_run_label(model_spec, reasoning_effort)}"
+        )
         start = time.monotonic()
         started_at = now_slug()
         error: str | None = None
@@ -376,14 +423,18 @@ def main() -> None:
                 out_dir=out_dir,
                 model=model_spec.model,
                 max_rounds=args.max_rounds,
-                reasoning_effort=args.reasoning_effort,
+                reasoning_effort=reasoning_effort,
                 write_visual=args.visual,
             )
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
             if args.fail_fast:
                 raise
-            print(f"Recorded error for {task_spec.visibility}/{task_spec.task_id} :: {model_spec.label}: {error}")
+            print(
+                "Recorded error for "
+                f"{task_spec.visibility}/{task_spec.task_id} :: "
+                f"{model_run_label(model_spec, reasoning_effort)}: {error}"
+            )
 
         outcome = summarize_outcome(
             matrix_id=matrix_id,
@@ -392,7 +443,7 @@ def main() -> None:
             out_dir=out_dir,
             started_at=started_at,
             duration_s=time.monotonic() - start,
-            reasoning_effort=args.reasoning_effort,
+            reasoning_effort=reasoning_effort,
             result=result,
             error=error,
         )

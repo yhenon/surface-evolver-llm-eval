@@ -32,7 +32,6 @@ BASELINE_MODELS = {
     "gemini-pro": "google/gemini-3.1-pro-preview",
     "deepseek": "deepseek/deepseek-v4-pro",
     "mistral": "mistralai/mistral-medium-3-5",
-    "poolside": "poolside/laguna-m.1:free",
     "arcee": "arcee-ai/trinity-large-thinking",
     "qwen": "qwen/qwen3.6-35b-a3b",
     "kimi": "moonshotai/kimi-k2.7-code",

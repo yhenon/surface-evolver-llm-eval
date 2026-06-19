@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
 import html
 import json
@@ -50,6 +51,41 @@ class Aggregate:
     mean_score: float
     mean_duration_s: float
     mean_total_tokens: float | None
+    provider: str | None = None
+
+
+PROVIDER_COLORS = {
+    "openai": "#111827",
+    "minimax": "#246bfe",
+    "deepseek": "#5b5ce2",
+    "gemini": "#4285f4",
+    "gemma": "#34a853",
+    "claude": "#d97757",
+    "kimi": "#7c3aed",
+    "grok": "#1f2937",
+    "arcee": "#ef7d00",
+    "qwen": "#7a4cff",
+    "z-ai": "#0f766e",
+    "mistral": "#ff7000",
+    "poolside": "#0ea5e9",
+}
+
+
+PROVIDER_ALIASES = (
+    ("deepseek", ("deepseek/", "deepseek")),
+    ("gemini", ("google/gemini", "gemini")),
+    ("gemma", ("google/gemma", "gemma")),
+    ("claude", ("anthropic/", "claude", "anthropic")),
+    ("kimi", ("moonshotai/", "kimi")),
+    ("grok", ("x-ai/", "grok")),
+    ("arcee", ("arcee-ai/", "arcee")),
+    ("qwen", ("qwen/", "qwen")),
+    ("z-ai", ("z-ai/", "glm")),
+    ("minimax", ("minimax/", "minimax")),
+    ("mistral", ("mistralai/", "mistral")),
+    ("poolside", ("poolside/", "poolside")),
+    ("openai", ("openai/", "gpt-", "gpt_", "o1", "o3", "o4")),
+)
 
 
 def load_jsonl(path: Path) -> list[Outcome]:
@@ -115,6 +151,17 @@ def model_key(row: Outcome) -> str:
     return str(row.get("model_run_label") or row.get("model_label") or row.get("model"))
 
 
+def provider_for_row(row: Outcome) -> str | None:
+    haystack = " ".join(
+        str(row.get(key) or "").lower()
+        for key in ("model", "model_label", "model_run_label", "baseline")
+    )
+    for provider, aliases in PROVIDER_ALIASES:
+        if any(alias in haystack for alias in aliases):
+            return provider
+    return None
+
+
 def score(row: Outcome) -> float:
     value = row.get("score")
     return float(value) if value is not None else 0.0
@@ -152,6 +199,7 @@ def aggregate_by(outcomes: list[Outcome], key_name: str) -> list[Aggregate]:
                 if runs
                 else 0.0,
                 mean_total_tokens=(sum(token_values) / len(token_values) if token_values else None),
+                provider=provider_for_row(rows[0]) if key_name == "model" else None,
             )
         )
 
@@ -180,6 +228,7 @@ def aggregate_task_model(outcomes: list[Outcome]) -> dict[str, dict[str, Aggrega
                 if runs
                 else 0.0,
                 mean_total_tokens=(sum(token_values) / len(token_values) if token_values else None),
+                provider=provider_for_row(rows[0]),
             )
     return result
 
@@ -246,6 +295,7 @@ def aggregate_payload(aggregates: list[Aggregate]) -> list[dict[str, Any]]:
             "mean_score": agg.mean_score,
             "mean_duration_s": agg.mean_duration_s,
             "mean_total_tokens": agg.mean_total_tokens,
+            "provider": agg.provider,
         }
         for agg in aggregates
     ]
@@ -282,24 +332,79 @@ def svg_doc(width: int, height: int, body: list[str]) -> str:
     )
 
 
-def metric_color(metric: str) -> str:
-    return "#1b998b" if metric == "Pass rate" else "#4f6bed"
+def load_provider_icons(icon_dir: Path | None) -> dict[str, str]:
+    if icon_dir is None or not icon_dir.exists():
+        return {}
+
+    icons: dict[str, str] = {}
+    for path in sorted(icon_dir.glob("*.png")):
+        data = base64.b64encode(path.read_bytes()).decode("ascii")
+        icons[path.stem.lower()] = f"data:image/png;base64,{data}"
+    return icons
 
 
-def write_bar_chart(path: Path, title: str, aggregates: list[Aggregate]) -> None:
+def lighten(hex_color: str, amount: float = 0.68) -> str:
+    raw = hex_color.lstrip("#")
+    red = int(raw[0:2], 16)
+    green = int(raw[2:4], 16)
+    blue = int(raw[4:6], 16)
+    red = int(red + (255 - red) * amount)
+    green = int(green + (255 - green) * amount)
+    blue = int(blue + (255 - blue) * amount)
+    return f"#{red:02x}{green:02x}{blue:02x}"
+
+
+def provider_color(provider: str | None, fallback: str = "#475467") -> str:
+    return PROVIDER_COLORS.get(provider or "", fallback)
+
+
+def bar_colors(agg: Aggregate) -> tuple[str, str]:
+    if agg.provider:
+        base = provider_color(agg.provider)
+        return base, lighten(base, 0.70)
+    return "#1b998b", "#4f6bed"
+
+
+def svg_icon(
+    provider: str | None,
+    icons: dict[str, str],
+    x: float,
+    y: float,
+    size: float,
+) -> str:
+    color = provider_color(provider, "#98a2b3")
+    uri = icons.get(provider or "")
+    if not uri:
+        return f'<circle cx="{x + size / 2:.2f}" cy="{y + size / 2:.2f}" r="{size / 2 - 1:.2f}" fill="{color}"/>'
+    return (
+        f'<image x="{x:.2f}" y="{y:.2f}" width="{size:.2f}" height="{size:.2f}" '
+        f'href="{uri}" preserveAspectRatio="xMidYMid meet"/>'
+    )
+
+
+def write_bar_chart(
+    path: Path,
+    title: str,
+    aggregates: list[Aggregate],
+    *,
+    icons: dict[str, str],
+) -> None:
     max_label_len = max((len(agg.key) for agg in aggregates), default=10)
-    label_width = min(max(170, max_label_len * 7 + 32), 370)
+    icon_gutter = 34 if any(agg.provider for agg in aggregates) else 0
+    label_width = min(max(180, max_label_len * 7 + 42 + icon_gutter), 430)
     plot_width = 520
+    value_width = 220
     top = 72
-    row_h = 42
+    row_h = 46
     bottom = 48
-    width = label_width + plot_width + 110
+    width = label_width + plot_width + value_width
     height = top + max(1, len(aggregates)) * row_h + bottom
     x0 = label_width
     body: list[str] = [
         svg_text(title, 24, 34, size=20, weight="700"),
-        svg_text("Pass rate", x0, 58, size=12, fill=metric_color("Pass rate")),
-        svg_text("Mean score", x0 + 82, 58, size=12, fill=metric_color("Mean score")),
+        svg_text("Pass rate", x0, 58, size=12, fill="#475467"),
+        svg_text("Mean score", x0 + 82, 58, size=12, fill="#98a2b3"),
+        svg_text("Outcome", x0 + plot_width + 18, 58, size=12, fill="#475467"),
     ]
 
     for tick in range(0, 101, 25):
@@ -309,18 +414,26 @@ def write_bar_chart(path: Path, title: str, aggregates: list[Aggregate]) -> None
 
     for index, agg in enumerate(aggregates):
         y = top + index * row_h
-        body.append(svg_text(agg.key, 24, y + 24, size=12))
+        label_x = 24
+        if agg.provider:
+            body.append(svg_icon(agg.provider, icons, label_x, y + 9, 24))
+            label_x += 34
+        body.append(svg_text(agg.key, label_x, y + 26, size=12, weight="600"))
         pass_w = plot_width * agg.pass_rate
         score_w = plot_width * agg.mean_score
-        body.append(f'<rect x="{x0}" y="{y + 6}" width="{pass_w:.2f}" height="13" rx="2" fill="{metric_color("Pass rate")}"/>')
-        body.append(f'<rect x="{x0}" y="{y + 23}" width="{score_w:.2f}" height="13" rx="2" fill="{metric_color("Mean score")}"/>')
+        pass_color, score_color = bar_colors(agg)
+        body.append(f'<rect x="{x0}" y="{y + 7}" width="{plot_width}" height="13" rx="2" fill="#eef1f4"/>')
+        body.append(f'<rect x="{x0}" y="{y + 25}" width="{plot_width}" height="13" rx="2" fill="#eef1f4"/>')
+        body.append(f'<rect x="{x0}" y="{y + 7}" width="{pass_w:.2f}" height="13" rx="2" fill="{pass_color}"/>')
+        body.append(f'<rect x="{x0}" y="{y + 25}" width="{score_w:.2f}" height="13" rx="2" fill="{score_color}"/>')
         body.append(
             svg_text(
                 f"{agg.passed}/{agg.runs} pass, score {agg.mean_score:.2f}",
-                x0 + plot_width + 14,
-                y + 26,
+                x0 + plot_width + 18,
+                y + 28,
                 size=11,
-                fill="#475467",
+                anchor="start",
+                fill="#344054",
             )
         )
 
@@ -338,13 +451,30 @@ def heat_color(value: float | None) -> str:
     return f"#{red:02x}{green:02x}{blue:02x}"
 
 
-def write_heatmap(path: Path, title: str, matrix: dict[str, dict[str, Aggregate]]) -> None:
+def write_heatmap(
+    path: Path,
+    title: str,
+    matrix: dict[str, dict[str, Aggregate]],
+    *,
+    icons: dict[str, str],
+) -> None:
     tasks = sorted(matrix)
     models = sorted({model for model_rows in matrix.values() for model in model_rows})
+    providers_by_model = {
+        model: next(
+            (
+                model_rows[model].provider
+                for model_rows in matrix.values()
+                if model in model_rows
+            ),
+            None,
+        )
+        for model in models
+    }
     max_task_len = max((len(task) for task in tasks), default=10)
     left = min(max(220, max_task_len * 7 + 32), 380)
-    top = 92
-    cell_w = 118
+    top = 120
+    cell_w = 130
     cell_h = 42
     width = left + max(1, len(models)) * cell_w + 36
     height = top + max(1, len(tasks)) * cell_h + 54
@@ -355,7 +485,14 @@ def write_heatmap(path: Path, title: str, matrix: dict[str, dict[str, Aggregate]
 
     for col, model in enumerate(models):
         x = left + col * cell_w + cell_w / 2
-        body.append(svg_text(model, x, top - 18, size=12, anchor="middle", weight="600"))
+        provider = providers_by_model.get(model)
+        body.append(svg_icon(provider, icons, x - 12, top - 58, 24))
+        body.append(svg_text(model, x, top - 24, size=12, anchor="middle", weight="600"))
+        body.append(
+            f'<line x1="{left + col * cell_w + 8:.2f}" y1="{top - 14}" '
+            f'x2="{left + (col + 1) * cell_w - 12:.2f}" y2="{top - 14}" '
+            f'stroke="{provider_color(provider, "#d0d5dd")}" stroke-width="3"/>'
+        )
 
     for row, task in enumerate(tasks):
         y = top + row * cell_h
@@ -441,6 +578,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output-dir", type=Path, default=Path("runs/plots"))
     parser.add_argument(
+        "--icon-dir",
+        type=Path,
+        default=Path("icons"),
+        help="Directory containing provider PNG icons. Defaults to ./icons.",
+    )
+    parser.add_argument("--no-icons", action="store_true", help="Do not embed provider icons in SVG charts.")
+    parser.add_argument(
         "--no-dedupe",
         action="store_true",
         help="Keep exact duplicate outcome rows. By default, duplicate rows for the same out_dir/task/model/start are collapsed.",
@@ -464,6 +608,7 @@ def main() -> None:
     model_aggregates = aggregate_by(outcomes, "model")
     task_aggregates = aggregate_by(outcomes, "task")
     task_model = aggregate_task_model(outcomes)
+    icons = load_provider_icons(None if args.no_icons else args.icon_dir)
 
     merged_jsonl = output_dir / "merged_outcomes.jsonl"
     merged_csv = output_dir / "merged_outcomes.csv"
@@ -486,9 +631,9 @@ def main() -> None:
             "inputs": [str(path) for path in inputs],
         },
     )
-    write_bar_chart(by_model_svg, "Results By Model", model_aggregates)
-    write_bar_chart(by_task_svg, "Results By Task", task_aggregates)
-    write_heatmap(heatmap_svg, "Mean Score By Task And Model", task_model)
+    write_bar_chart(by_model_svg, "Results By Model", model_aggregates, icons=icons)
+    write_bar_chart(by_task_svg, "Results By Task", task_aggregates, icons=icons)
+    write_heatmap(heatmap_svg, "Mean Score By Task And Model", task_model, icons=icons)
     write_html_report(
         report_html,
         outcomes=outcomes,
