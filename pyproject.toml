@@ -1,0 +1,12 @@
+[project]
+name = "se-llm-eval"
+version = "0.1.0"
+description = "Tiny Surface Evolver LLM eval scaffold"
+requires-python = ">=3.12"
+dependencies = ["openai>=2.0.0", "pydantic>=2.8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
