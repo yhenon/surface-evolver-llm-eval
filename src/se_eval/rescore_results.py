@@ -16,9 +16,11 @@ from .run_matrix import write_summary
 Outcome = dict[str, Any]
 
 
-def discover_matrix_dirs(runs_root: Path) -> list[Path]:
+def discover_result_dirs(runs_root: Path) -> list[Path]:
     if not runs_root.exists():
         return []
+    if (runs_root / "outcomes.jsonl").exists():
+        return [runs_root]
     return sorted(path for path in runs_root.glob("*_matrix") if path.is_dir())
 
 
@@ -187,7 +189,7 @@ def parse_args() -> argparse.Namespace:
         "inputs",
         nargs="*",
         type=Path,
-        help="Matrix directories or outcomes.jsonl files. Defaults to all runs/*_matrix directories.",
+        help="Run roots or outcomes.jsonl files. Defaults to runs/ when runs/outcomes.jsonl exists.",
     )
     parser.add_argument(
         "--runs-root",
@@ -226,9 +228,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    inputs = args.inputs or discover_matrix_dirs(args.runs_root)
+    inputs = args.inputs or discover_result_dirs(args.runs_root)
     if not inputs:
-        raise SystemExit(f"No matrix directories found under {args.runs_root}")
+        raise SystemExit(f"No outcome directories found under {args.runs_root}")
 
     backup_suffix = now_slug()
     changed_files: list[str] = []

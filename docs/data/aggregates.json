@@ -207,9 +207,6 @@
     }
   ],
   "inputs": [
-    "runs/20260617T073617Z_matrix",
-    "runs/20260617T115909Z_matrix",
-    "runs/20260617T135128Z_matrix",
-    "runs/20260618T101305Z_matrix"
+    "runs"
   ]
 }

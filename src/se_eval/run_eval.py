@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
+import traceback
 from datetime import datetime, timezone
 from json import JSONDecodeError
 from pathlib import Path
@@ -11,12 +13,17 @@ from typing import Any
 from openai import OpenAI
 
 from .grader import grade_existing_submission
+from .config import (
+    DEFAULT_BASELINE,
+    configured_model_map,
+    model_name_from_id,
+    resolve_model_name,
+)
 from .models import Task
 from .tools import OPENAI_TOOLS, execute_tool
 
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_BASELINE = "gpt-5.5"
 DEFAULT_TASK_VISIBILITY = "private"
 TASK_VISIBILITY_DIRS = {
     "public": "tasks_public",
@@ -24,24 +31,12 @@ TASK_VISIBILITY_DIRS = {
 }
 DEFAULT_TASKS = {
     "public": "two_bubbles_2d",
-    "private": "cube_basic",
+    "private": "cube",
 }
-BASELINE_MODELS = {
-    "gpt-5.5": "openai/gpt-5.5",
-    "gemini-flash": "google/gemini-3.5-flash",
-    "gemini-pro": "google/gemini-3.1-pro-preview",
-    "deepseek": "deepseek/deepseek-v4-pro",
-    "mistral": "mistralai/mistral-medium-3-5",
-    "arcee": "arcee-ai/trinity-large-thinking",
-    "qwen": "qwen/qwen3.6-35b-a3b",
-    "kimi": "moonshotai/kimi-k2.7-code",
-    "gemma": "google/gemma-4-31b-it",
-    "grok": "x-ai/grok-build-0.1",
-    "anthropic": "anthropic/claude-opus-4.8",
-    "minimax": "minimax/minimax-m3"
-}
+BASELINE_MODELS = configured_model_map()
 REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
 RESPONSE_PREVIEW_CHARS = 4000
+RUN_ERROR_FILE = "run_error.json"
 
 SYSTEM_PROMPT = """You are being evaluated on your ability to write valid Surface Evolver .fe files.
 
@@ -72,10 +67,6 @@ def round_status_prompt(current_round: int, max_rounds: int) -> str:
 
 def now_slug() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
-
-def model_slug(model: str) -> str:
-    return model.replace("/", "_").replace(":", "_")
 
 
 def make_openrouter_client() -> OpenAI:
@@ -131,6 +122,94 @@ class CompletionResponseError(RuntimeError):
     def __init__(self, message: str, diagnostic_path: Path) -> None:
         super().__init__(message)
         self.diagnostic_path = diagnostic_path
+
+
+def _safe_json_value(value: Any) -> Any:
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    if isinstance(value, list):
+        return [_safe_json_value(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _safe_json_value(item) for key, item in value.items()}
+    return str(value)
+
+
+def classify_run_error(error: str, exc: BaseException | None = None) -> str:
+    status_code = getattr(exc, "status_code", None)
+    lowered = error.lower()
+    exc_name = type(exc).__name__.lower() if exc is not None else ""
+
+    if isinstance(exc, CompletionResponseError) or "malformed json" in lowered:
+        return "malformed_provider_response"
+    if "no submit_fe_file call" in lowered:
+        return "no_submission"
+    if status_code in {401, 403} or "unauthorized" in lowered or "api key" in lowered:
+        return "auth"
+    if status_code == 429 or "rate limit" in lowered or "too many requests" in lowered:
+        if any(term in lowered for term in ("credit", "quota", "insufficient", "balance", "payment")):
+            return "quota_or_credit"
+        return "rate_limit"
+    if any(term in lowered for term in ("credit", "quota", "insufficient", "balance", "payment")):
+        return "quota_or_credit"
+    if any(term in lowered for term in ("timeout", "timed out")) or "timeout" in exc_name:
+        return "timeout"
+    if any(term in lowered for term in ("connection", "connect", "network", "dns", "temporary failure")):
+        return "connectivity"
+    if status_code is not None or "api" in exc_name or "openai" in exc_name:
+        return "provider_api"
+    if "surface evolver" in lowered or "evolver" in lowered:
+        return "grader_or_evolver"
+    return "unknown"
+
+
+def exception_metadata(exc: BaseException) -> dict[str, Any]:
+    metadata: dict[str, Any] = {
+        "type": type(exc).__name__,
+        "message": str(exc),
+    }
+    for attr in ("status_code", "code", "type", "param"):
+        value = getattr(exc, attr, None)
+        if value is not None:
+            metadata[attr] = _safe_json_value(value)
+    response = getattr(exc, "response", None)
+    if response is not None:
+        metadata["response"] = {
+            "status_code": _safe_json_value(getattr(response, "status_code", None)),
+            "headers": _safe_json_value(dict(getattr(response, "headers", {}) or {})),
+            "url": _safe_json_value(getattr(response, "url", None)),
+        }
+    body = getattr(exc, "body", None)
+    if body is not None:
+        metadata["body"] = _safe_json_value(body)
+    diagnostic_path = getattr(exc, "diagnostic_path", None)
+    if diagnostic_path is not None:
+        metadata["diagnostic_path"] = str(diagnostic_path)
+    return metadata
+
+
+def write_run_error(
+    *,
+    out_dir: Path,
+    stage: str,
+    error: str,
+    exc: BaseException | None = None,
+    context: dict[str, Any] | None = None,
+) -> Path:
+    payload: dict[str, Any] = {
+        "recorded_at": now_slug(),
+        "stage": stage,
+        "category": classify_run_error(error, exc),
+        "error": error,
+        "context": _safe_json_value(context or {}),
+    }
+    if exc is not None:
+        payload["exception"] = exception_metadata(exc)
+        payload["traceback"] = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+
+    path = out_dir / RUN_ERROR_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
 
 
 def text_preview(text: str, max_chars: int = RESPONSE_PREVIEW_CHARS) -> dict[str, Any]:
@@ -248,6 +327,7 @@ def generate_submission(
     submitted_fe: str | None = None
     rounds_used = 0
     generation_error: str | None = None
+    generation_exception: BaseException | None = None
     token_usage_totals: dict[str, int] = {}
     per_round_usage: list[dict[str, Any]] = []
 
@@ -272,6 +352,7 @@ def generate_submission(
             )
         except CompletionResponseError as exc:
             generation_error = str(exc)
+            generation_exception = exc
             transcript.append({
                 "role": "error",
                 "round": current_round,
@@ -364,6 +445,23 @@ def generate_submission(
             else generation_error or f"No submit_fe_file call after {max_rounds} rounds."
         ),
     }
+    if generation["error"]:
+        generation["error_path"] = str(
+            write_run_error(
+                out_dir=out_dir,
+                stage="generate",
+                error=str(generation["error"]),
+                exc=generation_exception,
+                context={
+                    "task_id": task.id,
+                    "model": model,
+                    "out_dir": str(out_dir),
+                    "rounds_used": rounds_used,
+                    "max_rounds": max_rounds,
+                    "reasoning_effort": reasoning_effort,
+                },
+            )
+        )
     (out_dir / "generation.json").write_text(
         json.dumps(generation, indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -395,32 +493,74 @@ def run_pipeline(
     reasoning_effort: str | None = None,
     write_visual: bool = False,
 ) -> dict[str, Any]:
-    generation = generate_submission(
-        task=task,
-        out_dir=out_dir,
-        model=model,
-        max_rounds=max_rounds,
-        reasoning_effort=reasoning_effort,
-    )
+    try:
+        generation = generate_submission(
+            task=task,
+            out_dir=out_dir,
+            model=model,
+            max_rounds=max_rounds,
+            reasoning_effort=reasoning_effort,
+        )
+    except Exception as exc:
+        write_run_error(
+            out_dir=out_dir,
+            stage="generate",
+            error=f"{type(exc).__name__}: {exc}",
+            exc=exc,
+            context={
+                "task_id": task.id,
+                "model": model,
+                "out_dir": str(out_dir),
+                "max_rounds": max_rounds,
+                "reasoning_effort": reasoning_effort,
+            },
+        )
+        raise
     if not generation["submitted"]:
         grade = {
             "task_id": task.id,
             "score": 0.0,
             "passed": False,
             "error": generation["error"],
+            "error_path": generation.get("error_path"),
         }
         (out_dir / "result.json").write_text(
             json.dumps(grade, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
     else:
-        grade = grade_stage(task=task, input_path=out_dir, write_visual=write_visual)
+        try:
+            grade = grade_stage(task=task, input_path=out_dir, write_visual=write_visual)
+        except Exception as exc:
+            write_run_error(
+                out_dir=out_dir,
+                stage="grade",
+                error=f"{type(exc).__name__}: {exc}",
+                exc=exc,
+                context={
+                    "task_id": task.id,
+                    "model": model,
+                    "out_dir": str(out_dir),
+                    "reasoning_effort": reasoning_effort,
+                },
+            )
+            raise
 
     return {"generation": generation, "grade": grade}
 
 
 def resolve_model(model: str | None, baseline: str) -> str:
     return model or BASELINE_MODELS[baseline]
+
+
+def normalize_baseline_arg(raw_name: str) -> str:
+    name = resolve_model_name(raw_name, BASELINE_MODELS)
+    if name != raw_name:
+        print(
+            f"warning: --baseline {raw_name!r} is deprecated; use {name!r}.",
+            file=sys.stderr,
+        )
+    return name
 
 
 def print_baselines() -> None:
@@ -478,9 +618,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--baseline",
-        choices=BASELINE_MODELS,
         default=os.environ.get("OPENROUTER_BASELINE", DEFAULT_BASELINE),
-        help="Named baseline model to run when --model is not set.",
+        help="Configured model name to run when --model is not set.",
     )
     parser.add_argument(
         "--all-baselines",
@@ -503,8 +642,10 @@ def main() -> None:
 
     if args.reasoning_effort and args.reasoning_effort not in REASONING_EFFORTS:
         raise SystemExit(f"--reasoning-effort must be one of: {', '.join(REASONING_EFFORTS)}")
-    if args.baseline not in BASELINE_MODELS:
-        raise SystemExit(f"--baseline must be one of: {', '.join(BASELINE_MODELS)}")
+    try:
+        args.baseline = normalize_baseline_arg(args.baseline)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if args.stage != "grade" and args.input is not None:
         raise SystemExit(
             "Positional input is only valid with --stage grade. "
@@ -529,11 +670,20 @@ def main() -> None:
         print(json.dumps({"input": str(args.input), "grade": grade}, indent=2, ensure_ascii=False))
         return
 
-    models = list(BASELINE_MODELS.values()) if args.all_baselines else [resolve_model(args.model, args.baseline)]
+    selected_models = (
+        list(BASELINE_MODELS.items())
+        if args.all_baselines
+        else [(model_name_from_id(args.model), args.model)] if args.model else [(args.baseline, resolve_model(None, args.baseline))]
+    )
 
     results: list[dict[str, Any]] = []
-    for model in models:
-        out_dir = output_dir(args=args, task=task, model=model, multi_model=len(models) > 1)
+    for model_label, model in selected_models:
+        out_dir = output_dir(
+            args=args,
+            task=task,
+            model_label=model_label,
+            multi_model=len(selected_models) > 1,
+        )
         if args.stage == "generate":
             result = generate_submission(
                 task=task,
@@ -561,14 +711,14 @@ def main() -> None:
         print(json.dumps(results, indent=2, ensure_ascii=False))
 
 
-def output_dir(args: argparse.Namespace, task: Task, model: str, multi_model: bool) -> Path:
+def output_dir(args: argparse.Namespace, task: Task, model_label: str, multi_model: bool) -> Path:
     if args.out_dir and not multi_model:
         return args.out_dir
 
-    suffix = f"_{model_slug(model)}"
+    label = model_label
     if args.reasoning_effort:
-        suffix += f"_reasoning-{args.reasoning_effort}"
-    return Path(args.out_root) / f"{now_slug()}_{task.id}{suffix}"
+        label += f"_reasoning-{args.reasoning_effort}"
+    return Path(args.out_root) / label / f"{args.task_visibility}_{task.id}"
 
 
 if __name__ == "__main__":

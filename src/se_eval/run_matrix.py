@@ -2,20 +2,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .config import DEFAULT_CONFIG_PATH, configured_model_map, model_name_from_id, resolve_model_name
 from .models import Task
 from .run_eval import (
-    BASELINE_MODELS,
-    DEFAULT_BASELINE,
     REASONING_EFFORTS,
+    RUN_ERROR_FILE,
     TASK_VISIBILITY_DIRS,
-    model_slug,
     now_slug,
     run_pipeline,
+    write_run_error,
 )
 
 
@@ -78,26 +79,35 @@ def selected_visibilities(task_visibility: str) -> list[str]:
     return [task_visibility]
 
 
-def selected_models(args: argparse.Namespace) -> list[ModelSpec]:
+def selected_models(args: argparse.Namespace, baseline_models: dict[str, str]) -> list[ModelSpec]:
     specs: list[ModelSpec] = []
 
-    baselines = list(BASELINE_MODELS) if args.all_baselines else args.baseline
+    baselines = list(baseline_models) if args.all_baselines else args.baseline
     if not baselines and not args.model:
-        baselines = [DEFAULT_BASELINE]
+        baselines = list(baseline_models)
 
     for baseline in baselines or []:
+        try:
+            baseline_name = resolve_model_name(baseline, baseline_models)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        if baseline_name != baseline:
+            print(
+                f"warning: --baseline {baseline!r} is deprecated; use {baseline_name!r}.",
+                file=sys.stderr,
+            )
         specs.append(
             ModelSpec(
-                label=baseline,
-                baseline=baseline,
-                model=BASELINE_MODELS[baseline],
+                label=baseline_name,
+                baseline=baseline_name,
+                model=baseline_models[baseline_name],
             )
         )
 
     for model in args.model or []:
         specs.append(
             ModelSpec(
-                label=model_slug(model),
+                label=model_name_from_id(model),
                 model=model,
             )
         )
@@ -151,7 +161,7 @@ def model_run_label(model: ModelSpec, reasoning_effort: str | None) -> str:
 
 
 def run_dir(matrix_dir: Path, task: TaskSpec, model: ModelSpec, reasoning_effort: str | None) -> Path:
-    return matrix_dir / f"{task.visibility}_{task.task_id}" / model_run_label(model, reasoning_effort)
+    return matrix_dir / model_run_label(model, reasoning_effort) / f"{task.visibility}_{task.task_id}"
 
 
 def summarize_outcome(
@@ -165,6 +175,7 @@ def summarize_outcome(
     reasoning_effort: str | None,
     result: dict[str, Any] | None = None,
     error: str | None = None,
+    error_path: Path | None = None,
 ) -> dict[str, Any]:
     generation = (result or {}).get("generation", {})
     grade = (result or {}).get("grade", {})
@@ -199,6 +210,7 @@ def summarize_outcome(
         "dynamic_failures": dynamic.get("details", {}).get("failures", []),
         "token_usage": token_usage.get("totals", {}),
         "error": error or generation.get("error"),
+        "error_path": str(error_path) if error_path is not None else generation.get("error_path"),
     }
 
 
@@ -290,8 +302,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--baseline",
         action="append",
-        choices=BASELINE_MODELS,
-        help=f"Named baseline to run. Repeat to select multiple. Defaults to {DEFAULT_BASELINE!r}.",
+        help="Configured model name to run. Repeat to select multiple. Defaults to every model in --config.",
     )
     parser.add_argument(
         "--all-baselines",
@@ -314,11 +325,12 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--max-rounds", type=int, default=8)
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--out-root", type=Path, default=Path("runs"))
     parser.add_argument(
         "--matrix-dir",
         type=Path,
-        help="Directory for this matrix run. Defaults to runs/<timestamp>_matrix.",
+        help="Directory for run outputs. Defaults to --out-root.",
     )
     parser.add_argument(
         "--results-file",
@@ -351,10 +363,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    matrix_id = now_slug()
-    matrix_dir = args.matrix_dir or args.out_root / f"{matrix_id}_matrix"
+    matrix_id = "incremental"
+    matrix_dir = args.matrix_dir or args.out_root
     results_file = args.results_file or matrix_dir / "outcomes.jsonl"
     summary_file = args.summary_file or matrix_dir / "summary.json"
+    baseline_models = configured_model_map(args.config)
 
     task_dirs = {
         "public": args.public_task_dir,
@@ -365,7 +378,7 @@ def main() -> None:
         task_ids=set(args.task) if args.task else None,
         task_dirs=task_dirs,
     )
-    models = selected_models(args)
+    models = selected_models(args, baseline_models)
     reasoning_efforts = selected_reasoning_efforts(args)
 
     planned = [
@@ -425,6 +438,7 @@ def main() -> None:
         start = time.monotonic()
         started_at = now_slug()
         error: str | None = None
+        error_path: Path | None = None
         result: dict[str, Any] | None = None
 
         try:
@@ -439,6 +453,26 @@ def main() -> None:
             )
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
+            existing_error_path = out_dir / RUN_ERROR_FILE
+            if existing_error_path.exists():
+                error_path = existing_error_path
+            else:
+                error_path = write_run_error(
+                    out_dir=out_dir,
+                    stage="matrix",
+                    error=error,
+                    exc=exc,
+                    context={
+                        "task_visibility": task_spec.visibility,
+                        "task_id": task_spec.task_id,
+                        "model_label": model_spec.label,
+                        "model_run_label": model_run_label(model_spec, reasoning_effort),
+                        "baseline": model_spec.baseline,
+                        "model": model_spec.model,
+                        "reasoning_effort": reasoning_effort,
+                        "out_dir": str(out_dir),
+                    },
+                )
             if args.fail_fast:
                 raise
             print(
@@ -457,6 +491,7 @@ def main() -> None:
             reasoning_effort=reasoning_effort,
             result=result,
             error=error,
+            error_path=error_path,
         )
         outcomes.append(outcome)
         append_jsonl(results_file, outcome)

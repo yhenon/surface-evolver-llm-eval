@@ -54,6 +54,9 @@ A run directory contains:
   when available.
 - `result.json`: score, pass/fail status, static check details, hidden Evolver
   output, and metric measurements.
+- `run_error.json`: written when generation or grading errors out, with a
+  coarse category such as `malformed_provider_response`, `connectivity`,
+  `quota_or_credit`, `rate_limit`, `no_submission`, or `grader_or_evolver`.
 - `visual.off` and `visual.svg`: optional Evolver-derived visual artifacts when
   grading with `--visual`.
 
@@ -94,7 +97,7 @@ docker run --rm \
   se-llm-eval python -m se_eval.run_eval \
     --task-visibility public \
     --task two_bubbles_2d \
-    --baseline deepseek
+    --baseline deepseek-v4-pro
 ```
 
 Run all configured baselines for a task:
@@ -104,7 +107,7 @@ docker run --rm \
   -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
   -v "$PWD/runs:/app/runs" \
   se-llm-eval python -m se_eval.run_eval \
-    --task cube_basic \
+    --task cube \
     --all-baselines
 ```
 
@@ -140,7 +143,7 @@ Run a full eval locally with the default private task set:
 ```bash
 OPENROUTER_API_KEY=... \
 PYTHONPATH=src uv run python -m se_eval.run_eval \
-  --task cube_basic \
+  --task cube \
   --baseline gpt-5.5
 ```
 
@@ -150,7 +153,7 @@ Run a public task locally:
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --task-visibility public \
   --task two_bubbles_2d \
-  --baseline deepseek
+  --baseline deepseek-v4-pro
 ```
 
 ## Models
@@ -168,15 +171,15 @@ Run one named baseline:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
-  --task cube_basic \
-  --baseline deepseek
+  --task cube \
+  --baseline deepseek-v4-pro
 ```
 
 Override the model id directly:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
-  --task cube_basic \
+  --task cube \
   --model openai/gpt-5.5
 ```
 
@@ -184,7 +187,7 @@ For models that support reasoning controls through OpenRouter:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
-  --task cube_basic \
+  --task cube \
   --baseline gpt-5.5 \
   --reasoning-effort high
 ```
@@ -210,8 +213,8 @@ Generate only:
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --stage generate \
-  --task cube_basic \
-  --baseline deepseek
+  --task cube \
+  --baseline deepseek-v4-pro
 ```
 
 Re-grade an existing run without calling a model:
@@ -219,8 +222,8 @@ Re-grade an existing run without calling a model:
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --stage grade \
-  --task cube_basic \
-  runs/20260601T183425Z_cube_basic_deepseek_deepseek-v4-pro
+  --task cube \
+  runs/deepseek-v4-pro/private_cube
 ```
 
 Grade a direct `.fe` file and print the result without writing JSON:
@@ -228,7 +231,7 @@ Grade a direct `.fe` file and print the result without writing JSON:
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --stage grade \
-  --task cube_basic \
+  --task cube \
   --no-write \
   path/to/submission.fe
 ```
@@ -238,7 +241,7 @@ Write Evolver-derived visual artifacts during grading:
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --stage grade \
-  --task cube_basic \
+  --task cube \
   --visual \
   path/to/submission.fe
 ```
@@ -253,7 +256,7 @@ Preview the full matrix without calling models:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_matrix \
-  --baseline deepseek \
+  --baseline deepseek-v4-pro \
   --task-visibility all \
   --dry-run
 ```
@@ -263,13 +266,20 @@ Run selected baselines on all public and private tasks:
 ```bash
 OPENROUTER_API_KEY=... \
 PYTHONPATH=src uv run python -m se_eval.run_matrix \
-  --baseline deepseek \
-  --baseline mistral \
+  --baseline deepseek-v4-pro \
+  --baseline mistral-medium-3-5 \
   --task-visibility all
 ```
 
-Each matrix run writes task/model run directories under
-`runs/<timestamp>_matrix/`, plus:
+Matrix runs now use stable, incrementally fillable paths:
+
+```text
+runs/<model-name>/<visibility>_<task-id>/
+```
+
+For example, DeepSeek's configured run for the public two-bubble task lives at
+`runs/deepseek-v4-pro/public_two_bubbles_2d/`. Compact aggregate files live at
+the runs root:
 
 - `outcomes.jsonl`: one compact row per task/model pair, suitable for pandas or
   plotting scripts.
@@ -278,10 +288,20 @@ Each matrix run writes task/model run directories under
 
 Useful options include `--model <openrouter/model-id>` for exact model ids,
 `--all-baselines`, repeated `--task <task_id>` filters, `--skip-existing` for
-resuming a matrix directory, and `--results-file` / `--summary-file` for custom
+incrementally filling missing directories, and `--results-file` / `--summary-file` for custom
 consolidated output paths. When `--reasoning-effort` is set, each task/model run
 directory includes `_reasoning-<effort>` and outcome rows include both
 `reasoning_effort` and `model_run_label`.
+
+Create the model/task directory grid without calling models:
+
+```bash
+PYTHONPATH=src uv run python -m se_eval.sync_runs
+```
+
+The model list comes from `eval_config.json`. Use full configured model names
+such as `deepseek-v4-pro`; older short aliases like `deepseek` still resolve for
+now but are deprecated.
 
 To compare multiple reasoning efforts in one matrix, pass a comma-separated list
 or repeat the option. Use `na` for a run that omits reasoning controls:
@@ -295,33 +315,24 @@ PYTHONPATH=src uv run python -m se_eval.run_matrix \
 
 ## Plotting Results
 
-Use `se_eval.plot_results` to join one or more matrix run directories and create
+Use `se_eval.plot_results` to join one or more run roots and create
 plot-ready merged data plus SVG charts. If an `icons/` directory is present, the
 plotter embeds provider PNG icons in the SVG charts and colors model bars by
 provider. Use `--icon-dir <path>` to point at another icon directory, or
 `--no-icons` to disable embedding.
 
-Plot a single matrix run:
-
-```bash
-PYTHONPATH=src uv run python -m se_eval.plot_results \
-  runs/20260610T131829Z_matrix \
-  --output-dir runs/20260610T131829Z_matrix/plots
-```
-
-Join all matrix runs under `runs/`:
+Plot the default stable runs root:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.plot_results \
   --output-dir runs/plots
 ```
 
-Join selected matrix runs:
+Plot a specific outcomes file:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.plot_results \
-  runs/20260610T131829Z_matrix \
-  runs/<another_timestamp>_matrix \
+  runs/outcomes.jsonl \
   --output-dir runs/joined_plots
 ```
 
@@ -341,25 +352,24 @@ The public web page lives in `docs/` and is deployed by
 artifacts, and `docs/data/aggregates.json` is published as the compact aggregate
 snapshot. Row-level CSV and JSONL files are not published for now.
 
-After adding tasks, models, or new matrix runs, refresh the site assets with:
+After adding tasks, models, or run results, refresh the site assets with:
 
 ```bash
 PYTHONPATH=src uv run python tools/update_pages_site.py --replot
 ```
 
-That command regenerates `runs/plots/` from the current matrix runs under
+That command regenerates `runs/plots/` from the current outcomes under
 `runs/`, then copies the public chart and aggregate artifacts into:
 
 - `docs/assets/charts/`
 - `docs/data/`
 
-To publish a specific set of matrix directories instead of every
-`runs/*_matrix` directory, pass them after `--replot`:
+To publish a specific outcomes file instead of the default `runs/outcomes.jsonl`,
+pass it after `--replot`:
 
 ```bash
 PYTHONPATH=src uv run python tools/update_pages_site.py --replot \
-  runs/20260617T073617Z_matrix \
-  runs/20260618T101305Z_matrix
+  runs/outcomes.jsonl
 ```
 
 Commit the changed files in `docs/` and push to `main`; the Pages workflow will
@@ -375,13 +385,13 @@ Preview a rescore for one task/model pair:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.rescore_results \
-  runs/20260610T131829Z_matrix \
+  runs/outcomes.jsonl \
   --task two_bubbles_2d \
   --model gpt-5.5 \
   --dry-run
 ```
 
-Rescore all rows in all matrix runs under `runs/`:
+Rescore all rows in `runs/outcomes.jsonl`:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.rescore_results
@@ -413,7 +423,7 @@ A task defines:
 
 Example task families currently include:
 
-- `cube_basic`: build a unit cube with one prescribed-volume body.
+- `cube`: build a unit cube with one prescribed-volume body.
 - `two_bubbles_2d`: build a two-bubble 2D string model with two prescribed
   enclosed areas and one shared internal edge.
 - `bridge_two_plates`: build a liquid bridge between two constrained plates
@@ -430,7 +440,7 @@ checks. Then run:
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --task-visibility public \
   --task <task_id> \
-  --baseline deepseek
+  --baseline deepseek-v4-pro
 ```
 
 ## Documentation Tool
