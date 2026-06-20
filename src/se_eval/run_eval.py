@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import traceback
 from datetime import datetime, timezone
 from json import JSONDecodeError
@@ -15,7 +16,9 @@ from openai import OpenAI
 from .grader import grade_existing_submission
 from .config import (
     DEFAULT_BASELINE,
-    configured_model_map,
+    REASONING_EFFORTS,
+    ConfiguredModel,
+    configured_model_spec_map,
     model_name_from_id,
     resolve_model_name,
 )
@@ -33,10 +36,11 @@ DEFAULT_TASKS = {
     "public": "two_bubbles_2d",
     "private": "cube",
 }
-BASELINE_MODELS = configured_model_map()
-REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
+BASELINE_MODELS = configured_model_spec_map()
 RESPONSE_PREVIEW_CHARS = 4000
 RUN_ERROR_FILE = "run_error.json"
+CHAT_COMPLETION_ATTEMPTS = 3
+CHAT_COMPLETION_RETRY_DELAY_SECONDS = 2.0
 
 SYSTEM_PROMPT = """You are being evaluated on your ability to write valid Surface Evolver .fe files.
 
@@ -228,6 +232,9 @@ def write_malformed_response_diagnostic(
     round_idx: int,
     raw_response: Any,
     exc: JSONDecodeError,
+    attempt: int | None = None,
+    max_attempts: int | None = None,
+    retryable: bool = False,
 ) -> Path:
     http_response = raw_response.http_response
     body = http_response.content
@@ -242,6 +249,9 @@ def write_malformed_response_diagnostic(
             "position": exc.pos,
         },
         "round": round_idx,
+        "attempt": attempt,
+        "max_attempts": max_attempts,
+        "retryable": retryable,
         "status_code": http_response.status_code,
         "reason_phrase": http_response.reason_phrase,
         "url": str(http_response.url),
@@ -254,9 +264,14 @@ def write_malformed_response_diagnostic(
         "body_bytes": len(body),
         "body_preview": text_preview(body_text),
     }
-    path = out_dir / f"malformed_response_round_{round_idx}.json"
+    attempt_suffix = f"_attempt_{attempt}" if attempt is not None else ""
+    path = out_dir / f"malformed_response_round_{round_idx}{attempt_suffix}.json"
     path.write_text(json.dumps(diagnostic, indent=2, ensure_ascii=False), encoding="utf-8")
     return path
+
+
+def response_body_is_blank(raw_response: Any) -> bool:
+    return not raw_response.http_response.content.strip()
 
 
 def create_chat_completion(
@@ -268,30 +283,55 @@ def create_chat_completion(
     messages: list[dict[str, Any]],
     reasoning_effort: str | None,
 ) -> Any:
-    raw_response = client.chat.completions.with_raw_response.create(
-        model=model,
-        messages=messages,
-        tools=OPENAI_TOOLS,
-        tool_choice="auto",
-        parallel_tool_calls=False,
-        extra_body=reasoning_body(reasoning_effort),
-    )
-    try:
-        return raw_response.parse()
-    except JSONDecodeError as exc:
-        diagnostic_path = write_malformed_response_diagnostic(
-            out_dir=out_dir,
-            round_idx=round_idx,
-            raw_response=raw_response,
-            exc=exc,
+    for attempt in range(1, CHAT_COMPLETION_ATTEMPTS + 1):
+        raw_response = client.chat.completions.with_raw_response.create(
+            model=model,
+            messages=messages,
+            tools=OPENAI_TOOLS,
+            tool_choice="auto",
+            parallel_tool_calls=False,
+            extra_body=reasoning_body(reasoning_effort),
         )
-        raise CompletionResponseError(
-            (
-                "Provider returned malformed JSON for chat completion "
-                f"round {round_idx}; wrote diagnostic to {diagnostic_path}."
-            ),
-            diagnostic_path=diagnostic_path,
-        ) from exc
+        try:
+            return raw_response.parse()
+        except JSONDecodeError as exc:
+            retryable = response_body_is_blank(raw_response)
+            if retryable and attempt < CHAT_COMPLETION_ATTEMPTS:
+                diagnostic_path = write_malformed_response_diagnostic(
+                    out_dir=out_dir,
+                    round_idx=round_idx,
+                    raw_response=raw_response,
+                    exc=exc,
+                    attempt=attempt,
+                    max_attempts=CHAT_COMPLETION_ATTEMPTS,
+                    retryable=True,
+                )
+                print(
+                    "Provider returned blank malformed JSON for chat completion "
+                    f"round {round_idx}, attempt {attempt}/{CHAT_COMPLETION_ATTEMPTS}; "
+                    f"wrote diagnostic to {diagnostic_path} and retrying..."
+                )
+                time.sleep(CHAT_COMPLETION_RETRY_DELAY_SECONDS * attempt)
+                continue
+
+            diagnostic_path = write_malformed_response_diagnostic(
+                out_dir=out_dir,
+                round_idx=round_idx,
+                raw_response=raw_response,
+                exc=exc,
+                attempt=attempt,
+                max_attempts=CHAT_COMPLETION_ATTEMPTS,
+                retryable=retryable,
+            )
+            raise CompletionResponseError(
+                (
+                    "Provider returned malformed JSON for chat completion "
+                    f"round {round_idx}; wrote diagnostic to {diagnostic_path}."
+                ),
+                diagnostic_path=diagnostic_path,
+            ) from exc
+
+    raise AssertionError("unreachable chat completion retry state")
 
 
 def generate_submission(
@@ -427,6 +467,7 @@ def generate_submission(
     generation = {
         "task_id": task.id,
         "model": model,
+        "reasoning_effort": reasoning_effort,
         "out_dir": str(out_dir),
         "rounds_used": rounds_used,
         "max_rounds": max_rounds,
@@ -550,7 +591,15 @@ def run_pipeline(
 
 
 def resolve_model(model: str | None, baseline: str) -> str:
-    return model or BASELINE_MODELS[baseline]
+    return model or BASELINE_MODELS[baseline].model
+
+
+def resolve_reasoning_effort(
+    *,
+    cli_effort: str | None,
+    model_spec: ConfiguredModel | None,
+) -> str | None:
+    return cli_effort if cli_effort is not None else (model_spec.reasoning_effort if model_spec else None)
 
 
 def normalize_baseline_arg(raw_name: str) -> str:
@@ -564,7 +613,14 @@ def normalize_baseline_arg(raw_name: str) -> str:
 
 
 def print_baselines() -> None:
-    print(json.dumps(BASELINE_MODELS, indent=2))
+    payload = {
+        name: {
+            "model": spec.model,
+            "reasoning_effort": spec.reasoning_effort,
+        }
+        for name, spec in BASELINE_MODELS.items()
+    }
+    print(json.dumps(payload, indent=2))
 
 
 def resolve_task_dir(task_dir: str | None, task_visibility: str) -> Path:
@@ -671,17 +727,29 @@ def main() -> None:
         return
 
     selected_models = (
-        list(BASELINE_MODELS.items())
+        [
+            (name, spec.model, resolve_reasoning_effort(cli_effort=args.reasoning_effort, model_spec=spec))
+            for name, spec in BASELINE_MODELS.items()
+        ]
         if args.all_baselines
-        else [(model_name_from_id(args.model), args.model)] if args.model else [(args.baseline, resolve_model(None, args.baseline))]
+        else [(model_name_from_id(args.model), args.model, args.reasoning_effort)]
+        if args.model
+        else [
+            (
+                args.baseline,
+                resolve_model(None, args.baseline),
+                resolve_reasoning_effort(cli_effort=args.reasoning_effort, model_spec=BASELINE_MODELS[args.baseline]),
+            )
+        ]
     )
 
     results: list[dict[str, Any]] = []
-    for model_label, model in selected_models:
+    for model_label, model, reasoning_effort in selected_models:
         out_dir = output_dir(
             args=args,
             task=task,
             model_label=model_label,
+            reasoning_effort=reasoning_effort,
             multi_model=len(selected_models) > 1,
         )
         if args.stage == "generate":
@@ -690,7 +758,7 @@ def main() -> None:
                 out_dir=out_dir,
                 model=model,
                 max_rounds=args.max_rounds,
-                reasoning_effort=args.reasoning_effort,
+                reasoning_effort=reasoning_effort,
             )
         else:
             result = run_pipeline(
@@ -698,7 +766,7 @@ def main() -> None:
                 out_dir=out_dir,
                 model=model,
                 max_rounds=args.max_rounds,
-                reasoning_effort=args.reasoning_effort,
+                reasoning_effort=reasoning_effort,
                 write_visual=args.visual,
             )
             result = {"model": model, "out_dir": str(out_dir), **result}
@@ -711,13 +779,19 @@ def main() -> None:
         print(json.dumps(results, indent=2, ensure_ascii=False))
 
 
-def output_dir(args: argparse.Namespace, task: Task, model_label: str, multi_model: bool) -> Path:
+def output_dir(
+    args: argparse.Namespace,
+    task: Task,
+    model_label: str,
+    reasoning_effort: str | None,
+    multi_model: bool,
+) -> Path:
     if args.out_dir and not multi_model:
         return args.out_dir
 
     label = model_label
     if args.reasoning_effort:
-        label += f"_reasoning-{args.reasoning_effort}"
+        label += f"_reasoning-{reasoning_effort or 'na'}"
     return Path(args.out_root) / label / f"{args.task_visibility}_{task.id}"
 
 

@@ -4,12 +4,12 @@ import argparse
 import json
 from pathlib import Path
 
-from .config import DEFAULT_CONFIG_PATH, configured_model_map
+from .config import DEFAULT_CONFIG_PATH, configured_model_spec_map
 from .run_matrix import (
     TaskSpec,
     iter_task_specs,
+    reasoning_efforts_for_model,
     run_dir,
-    selected_reasoning_efforts,
     selected_visibilities,
 )
 from .run_matrix import ModelSpec
@@ -56,16 +56,20 @@ def planned_dirs(args: argparse.Namespace) -> list[Path]:
         task_dirs=task_dirs,
     )
     models = [
-        ModelSpec(label=name, baseline=name, model=model)
-        for name, model in configured_model_map(args.config).items()
+        ModelSpec(
+            label=name,
+            baseline=name,
+            model=model.model,
+            reasoning_effort=model.reasoning_effort,
+        )
+        for name, model in configured_model_spec_map(args.config).items()
     ]
-    reasoning_efforts = selected_reasoning_efforts(args)
 
     return [
         run_dir(args.runs_root, task, model, reasoning_effort)
         for model in models
         for task in tasks
-        for reasoning_effort in reasoning_efforts
+        for reasoning_effort in reasoning_efforts_for_model(args, model)
     ]
 
 

@@ -8,7 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .config import DEFAULT_CONFIG_PATH, configured_model_map, model_name_from_id, resolve_model_name
+from .config import (
+    DEFAULT_CONFIG_PATH,
+    ConfiguredModel,
+    configured_model_spec_map,
+    model_name_from_id,
+    resolve_model_name,
+)
 from .models import Task
 from .run_eval import (
     REASONING_EFFORTS,
@@ -36,6 +42,7 @@ class ModelSpec:
     label: str
     model: str
     baseline: str | None = None
+    reasoning_effort: str | None = None
 
 
 NO_REASONING_EFFORT_ALIASES = {"na", "n/a", "default", "unset"}
@@ -79,7 +86,10 @@ def selected_visibilities(task_visibility: str) -> list[str]:
     return [task_visibility]
 
 
-def selected_models(args: argparse.Namespace, baseline_models: dict[str, str]) -> list[ModelSpec]:
+def selected_model_specs(
+    args: argparse.Namespace,
+    baseline_models: dict[str, ConfiguredModel],
+) -> list[ModelSpec]:
     specs: list[ModelSpec] = []
 
     baselines = list(baseline_models) if args.all_baselines else args.baseline
@@ -96,11 +106,13 @@ def selected_models(args: argparse.Namespace, baseline_models: dict[str, str]) -
                 f"warning: --baseline {baseline!r} is deprecated; use {baseline_name!r}.",
                 file=sys.stderr,
             )
+        configured = baseline_models[baseline_name]
         specs.append(
             ModelSpec(
                 label=baseline_name,
                 baseline=baseline_name,
-                model=baseline_models[baseline_name],
+                model=configured.model,
+                reasoning_effort=configured.reasoning_effort,
             )
         )
 
@@ -113,9 +125,9 @@ def selected_models(args: argparse.Namespace, baseline_models: dict[str, str]) -
         )
 
     deduped: list[ModelSpec] = []
-    seen: set[tuple[str, str | None]] = set()
+    seen: set[tuple[str, str | None, str | None]] = set()
     for spec in specs:
-        key = (spec.model, spec.baseline)
+        key = (spec.model, spec.baseline, spec.reasoning_effort)
         if key in seen:
             continue
         seen.add(key)
@@ -153,10 +165,18 @@ def selected_reasoning_efforts(args: argparse.Namespace) -> list[str | None]:
     return efforts
 
 
+def reasoning_efforts_for_model(args: argparse.Namespace, model: ModelSpec) -> list[str | None]:
+    if args.reasoning_effort:
+        return selected_reasoning_efforts(args)
+    return [model.reasoning_effort]
+
+
 def model_run_label(model: ModelSpec, reasoning_effort: str | None) -> str:
     label = model.label
-    if reasoning_effort:
+    if reasoning_effort and reasoning_effort != model.reasoning_effort:
         label += f"_reasoning-{reasoning_effort}"
+    elif reasoning_effort is None and model.reasoning_effort is not None:
+        label += "_reasoning-na"
     return label
 
 
@@ -375,7 +395,7 @@ def main() -> None:
     matrix_dir = args.matrix_dir or args.out_root
     results_file = args.results_file or matrix_dir / "outcomes.jsonl"
     summary_file = args.summary_file or matrix_dir / "summary.json"
-    baseline_models = configured_model_map(args.config)
+    baseline_models = configured_model_spec_map(args.config)
 
     task_dirs = {
         "public": args.public_task_dir,
@@ -386,8 +406,7 @@ def main() -> None:
         task_ids=set(args.task) if args.task else None,
         task_dirs=task_dirs,
     )
-    models = selected_models(args, baseline_models)
-    reasoning_efforts = selected_reasoning_efforts(args)
+    models = selected_model_specs(args, baseline_models)
 
     planned = [
         {
@@ -403,7 +422,7 @@ def main() -> None:
         }
         for task in tasks
         for model in models
-        for reasoning_effort in reasoning_efforts
+        for reasoning_effort in reasoning_efforts_for_model(args, model)
     ]
 
     if args.dry_run:

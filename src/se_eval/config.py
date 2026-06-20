@@ -8,6 +8,7 @@ from typing import Any
 
 DEFAULT_CONFIG_PATH = Path("eval_config.json")
 DEFAULT_BASELINE = "gpt-5.5"
+REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
 
 DEFAULT_MODELS = (
     ("gpt-5.5", "openai/gpt-5.5"),
@@ -44,6 +45,7 @@ DEPRECATED_MODEL_ALIASES = {
 class ConfiguredModel:
     name: str
     model: str
+    reasoning_effort: str | None = None
 
 
 def model_name_from_id(model: str) -> str:
@@ -70,10 +72,11 @@ def load_configured_models(config_path: Path = DEFAULT_CONFIG_PATH) -> list[Conf
             raise ValueError(f"{config_path}: models[{index}] must be an object.")
         name = _required_str(raw, "name", config_path, index)
         model = _required_str(raw, "model", config_path, index)
+        reasoning_effort = _optional_reasoning_effort(raw, config_path, index)
         if name in seen:
             raise ValueError(f"{config_path}: duplicate model name {name!r}.")
         seen.add(name)
-        models.append(ConfiguredModel(name=name, model=model))
+        models.append(ConfiguredModel(name=name, model=model, reasoning_effort=reasoning_effort))
 
     if not models:
         raise ValueError(f"{config_path} must list at least one model.")
@@ -87,8 +90,32 @@ def _required_str(raw: dict[str, Any], key: str, config_path: Path, index: int) 
     return value.strip()
 
 
+def _optional_reasoning_effort(raw: dict[str, Any], config_path: Path, index: int) -> str | None:
+    if "reasoning_effort" not in raw:
+        return None
+    value = raw.get("reasoning_effort")
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(
+            f"{config_path}: models[{index}].reasoning_effort must be null or one of: "
+            f"{', '.join(REASONING_EFFORTS)}."
+        )
+    effort = value.strip().lower()
+    if effort not in REASONING_EFFORTS:
+        raise ValueError(
+            f"{config_path}: models[{index}].reasoning_effort must be one of: "
+            f"{', '.join(REASONING_EFFORTS)}."
+        )
+    return effort
+
+
 def configured_model_map(config_path: Path = DEFAULT_CONFIG_PATH) -> dict[str, str]:
     return {model.name: model.model for model in load_configured_models(config_path)}
+
+
+def configured_model_spec_map(config_path: Path = DEFAULT_CONFIG_PATH) -> dict[str, ConfiguredModel]:
+    return {model.name: model for model in load_configured_models(config_path)}
 
 
 def resolve_model_name(name: str, models: dict[str, str]) -> str:

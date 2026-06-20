@@ -28,6 +28,8 @@ SUMMARY_FIELDS = (
     "baseline",
     "model",
     "reasoning_effort",
+    "reasoning_label",
+    "reasoning_source",
     "score",
     "passed",
     "submitted",
@@ -186,10 +188,21 @@ def task_key(row: Outcome, task_labels: TaskLabels | None = None) -> str:
 def model_key(row: Outcome) -> str:
     model = str(row.get("model") or row.get("model_run_label") or row.get("model_label"))
     label = model.rsplit("/", 1)[-1]
+    reasoning = reasoning_display(row)
+    if reasoning:
+        return f"{label} ({reasoning})"
+    return label
+
+
+def reasoning_display(row: Outcome) -> str | None:
     reasoning_effort = row.get("reasoning_effort")
     if reasoning_effort and reasoning_effort != "na":
-        return f"{label} ({reasoning_effort})"
-    return label
+        return str(reasoning_effort)
+
+    reasoning_label = row.get("reasoning_label")
+    if reasoning_label and reasoning_label not in {"default on", "provider default", "mandatory"}:
+        return str(reasoning_label)
+    return None
 
 
 def provider_for_row(row: Outcome) -> str | None:
@@ -398,6 +411,8 @@ def csv_row(row: Outcome, task_labels: TaskLabels) -> dict[str, Any]:
         "baseline": row.get("baseline"),
         "model": row.get("model"),
         "reasoning_effort": row.get("reasoning_effort"),
+        "reasoning_label": row.get("reasoning_label"),
+        "reasoning_source": row.get("reasoning_source"),
         "score": row.get("score"),
         "passed": row.get("passed"),
         "submitted": row.get("submitted"),

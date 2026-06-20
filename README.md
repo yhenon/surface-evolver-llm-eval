@@ -192,6 +192,21 @@ PYTHONPATH=src uv run python -m se_eval.run_eval \
   --reasoning-effort high
 ```
 
+Named models in `eval_config.json` can also declare a default
+`reasoning_effort`:
+
+```json
+{
+  "name": "gpt-5.5-high",
+  "model": "openai/gpt-5.5",
+  "reasoning_effort": "high"
+}
+```
+
+When no reasoning option is passed, the runner uses the configured model's
+`reasoning_effort`. If neither the CLI nor config sets one, the request omits
+the OpenRouter `reasoning` object and the provider default applies.
+
 Supported environment variables:
 
 - `OPENROUTER_API_KEY`
@@ -290,9 +305,11 @@ Useful options include `--model <openrouter/model-id>` for exact model ids,
 `--all-baselines`, repeated `--task <task_id>` filters, `--skip-existing` for
 incrementally filling directories that lack both `result.json` and
 `run_error.json`, and `--results-file` / `--summary-file` for custom
-consolidated output paths. When `--reasoning-effort` is set, each task/model run
-directory includes `_reasoning-<effort>` and outcome rows include both
-`reasoning_effort` and `model_run_label`.
+consolidated output paths. Configured reasoning defaults keep the configured
+model name in run directories. Explicit `--reasoning-effort` matrix overrides
+use `_reasoning-<effort>` or `_reasoning-na` suffixes so comparisons do not
+collide, and outcome rows include `reasoning_effort`, `reasoning_label` when no
+named effort is available, and `model_run_label`.
 
 Create the model/task directory grid without calling models:
 
@@ -304,8 +321,9 @@ The model list comes from `eval_config.json`. Use full configured model names
 such as `deepseek-v4-pro`; older short aliases like `deepseek` still resolve for
 now but are deprecated.
 
-To compare multiple reasoning efforts in one matrix, pass a comma-separated list
-or repeat the option. Use `na` for a run that omits reasoning controls:
+To compare multiple reasoning efforts in one matrix, either add separate config
+entries such as `gpt-5.5-medium` and `gpt-5.5-high`, or pass a comma-separated
+list / repeat the option. Use `na` for a run that omits reasoning controls:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_matrix \
@@ -347,7 +365,8 @@ The plotting script writes:
 - `by_task.svg`: pass rate and mean score by task.
 - `task_model_heatmap.svg`: mean score for each task/model pair.
 - `merged_outcomes.jsonl` and `merged_outcomes.csv`: joined row-level data,
-  including token and cost fields when `generation.json` is available.
+  including reasoning labels plus token and cost fields when `generation.json`
+  is available.
 - `aggregates.json`: aggregate statistics by model and by task, including
   total/mean token and recorded-cost values.
 
