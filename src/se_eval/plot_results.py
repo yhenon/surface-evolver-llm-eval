@@ -762,6 +762,13 @@ def heat_color(value: float | None) -> str:
     return f"#{red:02x}{green:02x}{blue:02x}"
 
 
+def model_label_lines(model: str) -> list[str]:
+    if model.endswith(")") and " (" in model:
+        label, reasoning = model.rsplit(" (", 1)
+        return [label, f"({reasoning}"]
+    return [model]
+
+
 def write_heatmap(
     path: Path,
     title: str,
@@ -782,10 +789,12 @@ def write_heatmap(
         )
         for model in models
     }
+    model_labels = {model: model_label_lines(model) for model in models}
     max_task_len = max((len(task) for task in tasks), default=10)
+    max_model_len = max((len(line) for lines in model_labels.values() for line in lines), default=10)
     left = min(max(220, max_task_len * 7 + 32), 380)
-    top = 120
-    cell_w = 130
+    top = 132
+    cell_w = min(max(130, max_model_len * 7 + 22), 190)
     cell_h = 42
     width = left + max(1, len(models)) * cell_w + 36
     height = top + max(1, len(tasks)) * cell_h + 54
@@ -797,8 +806,21 @@ def write_heatmap(
     for col, model in enumerate(models):
         x = left + col * cell_w + cell_w / 2
         provider = providers_by_model.get(model)
-        body.append(svg_icon(provider, icons, x - 12, top - 58, 24))
-        body.append(svg_text(model, x, top - 24, size=12, anchor="middle", weight="600"))
+        label_lines = model_labels[model]
+        body.append(svg_icon(provider, icons, x - 12, top - 72, 24))
+        label_y = top - 38 if len(label_lines) > 1 else top - 28
+        for index, line in enumerate(label_lines):
+            body.append(
+                svg_text(
+                    line,
+                    x,
+                    label_y + index * 14,
+                    size=12 if index == 0 else 11,
+                    anchor="middle",
+                    weight="600" if index == 0 else "500",
+                    fill="#18202a" if index == 0 else "#667085",
+                )
+            )
         body.append(
             f'<line x1="{left + col * cell_w + 8:.2f}" y1="{top - 14}" '
             f'x2="{left + (col + 1) * cell_w - 12:.2f}" y2="{top - 14}" '
