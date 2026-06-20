@@ -164,6 +164,14 @@ def run_dir(matrix_dir: Path, task: TaskSpec, model: ModelSpec, reasoning_effort
     return matrix_dir / model_run_label(model, reasoning_effort) / f"{task.visibility}_{task.task_id}"
 
 
+def existing_run_marker(out_dir: Path) -> Path | None:
+    for name in ("result.json", RUN_ERROR_FILE):
+        marker = out_dir / name
+        if marker.exists():
+            return marker
+    return None
+
+
 def summarize_outcome(
     *,
     matrix_id: str,
@@ -346,7 +354,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-existing",
         action="store_true",
-        help="Skip model/task pairs whose run directory already has result.json.",
+        help="Skip model/task pairs whose run directory already has result.json or run_error.json.",
     )
     parser.add_argument(
         "--fail-fast",
@@ -423,11 +431,13 @@ def main() -> None:
         reasoning_effort = item["reasoning_effort"]
         out_dir = Path(item["out_dir"])
 
-        if args.skip_existing and (out_dir / "result.json").exists():
+        existing_marker = existing_run_marker(out_dir) if args.skip_existing else None
+        if existing_marker is not None:
             print(
                 "Skipping existing run: "
                 f"{task_spec.visibility}/{task_spec.task_id} :: "
-                f"{model_run_label(model_spec, reasoning_effort)}"
+                f"{model_run_label(model_spec, reasoning_effort)} "
+                f"({existing_marker.name})"
             )
             continue
 

@@ -288,7 +288,8 @@ the runs root:
 
 Useful options include `--model <openrouter/model-id>` for exact model ids,
 `--all-baselines`, repeated `--task <task_id>` filters, `--skip-existing` for
-incrementally filling missing directories, and `--results-file` / `--summary-file` for custom
+incrementally filling directories that lack both `result.json` and
+`run_error.json`, and `--results-file` / `--summary-file` for custom
 consolidated output paths. When `--reasoning-effort` is set, each task/model run
 directory includes `_reasoning-<effort>` and outcome rows include both
 `reasoning_effort` and `model_run_label`.
@@ -339,11 +340,16 @@ PYTHONPATH=src uv run python -m se_eval.plot_results \
 The plotting script writes:
 
 - `index.html`: a small local report embedding the charts.
-- `by_model.svg`: pass rate and mean score by model.
+- `by_model.svg`: pass rate, mean score, total tokens, and recorded cost by model.
+- `score_vs_total_tokens.svg`: mean score versus total tokens by model.
+- `score_vs_total_cost.svg`: mean score versus recorded inference cost by model,
+  with a stepped efficient frontier.
 - `by_task.svg`: pass rate and mean score by task.
 - `task_model_heatmap.svg`: mean score for each task/model pair.
-- `merged_outcomes.jsonl` and `merged_outcomes.csv`: joined row-level data.
-- `aggregates.json`: aggregate statistics by model and by task.
+- `merged_outcomes.jsonl` and `merged_outcomes.csv`: joined row-level data,
+  including token and cost fields when `generation.json` is available.
+- `aggregates.json`: aggregate statistics by model and by task, including
+  total/mean token and recorded-cost values.
 
 ## Publishing The GitHub Pages Site
 

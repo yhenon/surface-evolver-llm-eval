@@ -40,7 +40,12 @@ SUMMARY_FIELDS = (
     "total_tokens",
     "prompt_tokens",
     "completion_tokens",
+    "total_cost_usd",
+    "prompt_cost_usd",
+    "completion_cost_usd",
+    "cost_rounds",
     "out_dir",
+    "generation_path",
     "error",
 )
 
@@ -53,21 +58,25 @@ class Aggregate:
     pass_rate: float
     mean_score: float
     mean_duration_s: float
+    total_tokens: int | None
     mean_total_tokens: float | None
+    total_cost_usd: float | None
+    mean_total_cost_usd: float | None
+    costed_runs: int
     provider: str | None = None
 
 
 PROVIDER_COLORS = {
     "openai": "#111827",
-    "minimax": "#246bfe",
+    "minimax": "#e11d48",
     "deepseek": "#5b5ce2",
     "gemini": "#4285f4",
     "gemma": "#34a853",
     "claude": "#d97757",
     "kimi": "#7c3aed",
     "grok": "#1f2937",
-    "arcee": "#ef7d00",
-    "qwen": "#7a4cff",
+    "arcee": "#16a34a",
+    "qwen": "#f97316",
     "z-ai": "#0f766e",
     "mistral": "#ff7000",
     "poolside": "#0ea5e9",
@@ -203,10 +212,126 @@ def bool_int(value: Any) -> int:
     return int(bool(value))
 
 
+def numeric_value(value: Any) -> float | None:
+    if isinstance(value, int | float):
+        return float(value)
+    return None
+
+
 def token_total(row: Outcome) -> int | None:
     usage = row.get("token_usage") or {}
-    value = usage.get("total_tokens")
+    totals = usage.get("totals") if isinstance(usage.get("totals"), dict) else None
+    value = (totals or usage).get("total_tokens")
     return int(value) if isinstance(value, int | float) else None
+
+
+def cost_total(row: Outcome) -> float | None:
+    usage = row.get("cost_usage") or {}
+    return numeric_value(usage.get("total_cost_usd"))
+
+
+def generation_path_for_row(row: Outcome) -> Path | None:
+    generation_path = row.get("generation_path")
+    if generation_path:
+        return Path(str(generation_path))
+    out_dir = row.get("out_dir")
+    if out_dir:
+        return Path(str(out_dir)) / "generation.json"
+    return None
+
+
+def cost_usage_from_generation(generation: Outcome) -> dict[str, Any] | None:
+    token_usage = generation.get("token_usage") or {}
+    per_round = token_usage.get("per_round") or []
+    total_cost = 0.0
+    prompt_cost = 0.0
+    completion_cost = 0.0
+    cost_rounds = 0
+
+    for round_usage in per_round:
+        usage = (round_usage or {}).get("usage") or {}
+        cost = numeric_value(usage.get("cost"))
+        if cost is None:
+            continue
+        cost_rounds += 1
+        total_cost += cost
+        details = usage.get("cost_details") or {}
+        prompt_cost += numeric_value(details.get("upstream_inference_prompt_cost")) or 0.0
+        completion_cost += numeric_value(details.get("upstream_inference_completions_cost")) or 0.0
+
+    if cost_rounds == 0:
+        return None
+
+    return {
+        "available": True,
+        "total_cost_usd": total_cost,
+        "prompt_cost_usd": prompt_cost,
+        "completion_cost_usd": completion_cost,
+        "rounds": cost_rounds,
+    }
+
+
+def enrich_outcomes_with_generation(outcomes: Iterable[Outcome]) -> list[Outcome]:
+    enriched: list[Outcome] = []
+    generation_cache: dict[Path, Outcome | None] = {}
+
+    for row in outcomes:
+        copy = dict(row)
+        path = generation_path_for_row(copy)
+        if path is None:
+            enriched.append(copy)
+            continue
+
+        generation = generation_cache.get(path)
+        if path not in generation_cache:
+            if path.exists():
+                generation = json.loads(path.read_text(encoding="utf-8"))
+            else:
+                generation = None
+            generation_cache[path] = generation
+
+        if generation is None:
+            enriched.append(copy)
+            continue
+
+        token_usage = generation.get("token_usage") or {}
+        totals = token_usage.get("totals") if isinstance(token_usage.get("totals"), dict) else {}
+        if totals:
+            merged_usage = dict(copy.get("token_usage") or {})
+            for key, value in totals.items():
+                merged_usage.setdefault(key, value)
+            copy["token_usage"] = merged_usage
+
+        cost_usage = cost_usage_from_generation(generation)
+        if cost_usage:
+            copy["cost_usage"] = cost_usage
+        copy.setdefault("generation_path", str(path))
+        enriched.append(copy)
+
+    return enriched
+
+
+def aggregate_rows(key: str, rows: list[Outcome], provider: str | None = None) -> Aggregate:
+    runs = len(rows)
+    passed = sum(bool_int(row.get("passed")) for row in rows)
+    token_values = [value for row in rows if (value := token_total(row)) is not None]
+    cost_values = [value for row in rows if (value := cost_total(row)) is not None]
+    return Aggregate(
+        key=key,
+        runs=runs,
+        passed=passed,
+        pass_rate=passed / runs if runs else 0.0,
+        mean_score=sum(score(row) for row in rows) / runs if runs else 0.0,
+        mean_duration_s=sum(float(row.get("duration_s") or 0.0) for row in rows) / runs
+        if runs
+        else 0.0,
+        total_tokens=(sum(token_values) if token_values else None),
+        mean_total_tokens=(sum(token_values) / len(token_values) if token_values else None),
+        total_cost_usd=(sum(cost_values) if cost_values else None),
+        mean_total_cost_usd=(sum(cost_values) / len(cost_values) if cost_values else None),
+        costed_runs=len(cost_values),
+        provider=provider,
+    )
 
 
 def aggregate_by(outcomes: list[Outcome], key_name: str, task_labels: TaskLabels) -> list[Aggregate]:
@@ -217,20 +342,10 @@ def aggregate_by(outcomes: list[Outcome], key_name: str, task_labels: TaskLabels
 
     aggregates: list[Aggregate] = []
     for key, rows in buckets.items():
-        runs = len(rows)
-        passed = sum(bool_int(row.get("passed")) for row in rows)
-        token_values = [token_total(row) for row in rows if token_total(row) is not None]
         aggregates.append(
-            Aggregate(
+            aggregate_rows(
                 key=key,
-                runs=runs,
-                passed=passed,
-                pass_rate=passed / runs if runs else 0.0,
-                mean_score=sum(score(row) for row in rows) / runs if runs else 0.0,
-                mean_duration_s=sum(float(row.get("duration_s") or 0.0) for row in rows) / runs
-                if runs
-                else 0.0,
-                mean_total_tokens=(sum(token_values) / len(token_values) if token_values else None),
+                rows=rows,
                 provider=provider_for_row(rows[0]) if key_name == "model" else None,
             )
         )
@@ -247,19 +362,9 @@ def aggregate_task_model(outcomes: list[Outcome], task_labels: TaskLabels) -> di
     for task, model_rows in buckets.items():
         result[task] = {}
         for model, rows in model_rows.items():
-            runs = len(rows)
-            passed = sum(bool_int(row.get("passed")) for row in rows)
-            token_values = [token_total(row) for row in rows if token_total(row) is not None]
-            result[task][model] = Aggregate(
-                key=model,
-                runs=runs,
-                passed=passed,
-                pass_rate=passed / runs if runs else 0.0,
-                mean_score=sum(score(row) for row in rows) / runs if runs else 0.0,
-                mean_duration_s=sum(float(row.get("duration_s") or 0.0) for row in rows) / runs
-                if runs
-                else 0.0,
-                mean_total_tokens=(sum(token_values) / len(token_values) if token_values else None),
+            result[task][model] = aggregate_rows(
+                model,
+                rows,
                 provider=provider_for_row(rows[0]),
             )
     return result
@@ -280,6 +385,7 @@ def write_jsonl(path: Path, rows: list[Outcome]) -> None:
 
 def csv_row(row: Outcome, task_labels: TaskLabels) -> dict[str, Any]:
     usage = row.get("token_usage") or {}
+    cost_usage = row.get("cost_usage") or {}
     return {
         "matrix_id": row.get("matrix_id"),
         "started_at": row.get("started_at"),
@@ -304,7 +410,12 @@ def csv_row(row: Outcome, task_labels: TaskLabels) -> dict[str, Any]:
         "total_tokens": usage.get("total_tokens"),
         "prompt_tokens": usage.get("prompt_tokens"),
         "completion_tokens": usage.get("completion_tokens"),
+        "total_cost_usd": cost_usage.get("total_cost_usd"),
+        "prompt_cost_usd": cost_usage.get("prompt_cost_usd"),
+        "completion_cost_usd": cost_usage.get("completion_cost_usd"),
+        "cost_rounds": cost_usage.get("rounds"),
         "out_dir": row.get("out_dir"),
+        "generation_path": row.get("generation_path"),
         "error": row.get("error"),
     }
 
@@ -327,7 +438,11 @@ def aggregate_payload(aggregates: list[Aggregate]) -> list[dict[str, Any]]:
             "pass_rate": agg.pass_rate,
             "mean_score": agg.mean_score,
             "mean_duration_s": agg.mean_duration_s,
+            "total_tokens": agg.total_tokens,
             "mean_total_tokens": agg.mean_total_tokens,
+            "total_cost_usd": agg.total_cost_usd,
+            "mean_total_cost_usd": agg.mean_total_cost_usd,
+            "costed_runs": agg.costed_runs,
             "provider": agg.provider,
         }
         for agg in aggregates
@@ -415,20 +530,45 @@ def svg_icon(
     )
 
 
+def format_tokens(value: float | int | None) -> str:
+    if value is None:
+        return "n/a"
+    if value >= 1_000_000:
+        return f"{value / 1_000_000:.1f}M"
+    if value >= 10_000:
+        return f"{value / 1_000:.0f}k"
+    if value >= 1_000:
+        return f"{value / 1_000:.1f}k"
+    return f"{int(value)}"
+
+
+def format_cost(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    if value >= 100:
+        return f"${value:.0f}"
+    if value >= 1:
+        return f"${value:.2f}"
+    if value >= 0.01:
+        return f"${value:.3f}"
+    return f"${value:.5f}"
+
+
 def write_bar_chart(
     path: Path,
     title: str,
     aggregates: list[Aggregate],
     *,
     icons: dict[str, str],
+    show_usage: bool = False,
 ) -> None:
     max_label_len = max((len(agg.key) for agg in aggregates), default=10)
     icon_gutter = 34 if any(agg.provider for agg in aggregates) else 0
     label_width = min(max(180, max_label_len * 7 + 42 + icon_gutter), 430)
     plot_width = 520
-    value_width = 220
+    value_width = 390 if show_usage else 220
     top = 72
-    row_h = 46
+    row_h = 56 if show_usage else 46
     bottom = 48
     width = label_width + plot_width + value_width
     height = top + max(1, len(aggregates)) * row_h + bottom
@@ -439,6 +579,8 @@ def write_bar_chart(
         svg_text("Mean score", x0 + 82, 58, size=12, fill="#98a2b3"),
         svg_text("Outcome", x0 + plot_width + 18, 58, size=12, fill="#475467"),
     ]
+    if show_usage:
+        body.append(svg_text("Total tokens / recorded cost", x0 + plot_width + 170, 58, size=12, fill="#475467"))
 
     for tick in range(0, 101, 25):
         x = x0 + plot_width * tick / 100
@@ -463,12 +605,133 @@ def write_bar_chart(
             svg_text(
                 f"{agg.passed}/{agg.runs} pass, score {agg.mean_score:.2f}",
                 x0 + plot_width + 18,
-                y + 28,
+                y + (21 if show_usage else 28),
                 size=11,
                 anchor="start",
                 fill="#344054",
             )
         )
+        if show_usage:
+            body.append(
+                svg_text(
+                    f"{format_tokens(agg.total_tokens)} tok, {format_cost(agg.total_cost_usd)}",
+                    x0 + plot_width + 170,
+                    y + 21,
+                    size=11,
+                    anchor="start",
+                    fill="#344054",
+                )
+            )
+            body.append(
+                svg_text(
+                    f"avg {format_tokens(agg.mean_total_tokens)} tok/run, {format_cost(agg.mean_total_cost_usd)}/run",
+                    x0 + plot_width + 170,
+                    y + 39,
+                    size=10,
+                    anchor="start",
+                    fill="#667085",
+                )
+            )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(svg_doc(width, height, body), encoding="utf-8")
+
+
+def axis_ticks(max_value: float, count: int = 5) -> list[float]:
+    if max_value <= 0:
+        return [0.0]
+    return [max_value * index / (count - 1) for index in range(count)]
+
+
+def write_performance_scatter(
+    path: Path,
+    title: str,
+    aggregates: list[Aggregate],
+    *,
+    x_value: str,
+    x_label: str,
+    x_format: str,
+    icons: dict[str, str],
+    show_frontier: bool = False,
+) -> None:
+    points = [
+        (agg, numeric_value(getattr(agg, x_value)))
+        for agg in aggregates
+        if numeric_value(getattr(agg, x_value)) is not None
+    ]
+    left = 88
+    top = 74
+    plot_width = 680
+    plot_height = 420
+    right = 210
+    bottom = 72
+    width = left + plot_width + right
+    height = top + plot_height + bottom
+    max_x = max((value for _, value in points if value is not None), default=1.0)
+    x_tick_format = format_tokens if x_format == "tokens" else format_cost
+    body: list[str] = [
+        svg_text(title, 24, 34, size=20, weight="700"),
+        svg_text("Each point is one model aggregate.", 24, 57, size=12, fill="#667085"),
+    ]
+
+    for tick in axis_ticks(max_x):
+        x = left + plot_width * (tick / max_x if max_x else 0.0)
+        body.append(f'<line x1="{x:.2f}" y1="{top}" x2="{x:.2f}" y2="{top + plot_height}" stroke="#e3e7eb"/>')
+        body.append(svg_text(x_tick_format(tick), x, top + plot_height + 25, size=11, anchor="middle", fill="#667085"))
+    for tick in [0.0, 0.25, 0.5, 0.75, 1.0]:
+        y = top + plot_height * (1 - tick)
+        body.append(f'<line x1="{left}" y1="{y:.2f}" x2="{left + plot_width}" y2="{y:.2f}" stroke="#e3e7eb"/>')
+        body.append(svg_text(f"{tick:.2f}", left - 14, y + 4, size=11, anchor="end", fill="#667085"))
+
+    body.append(f'<line x1="{left}" y1="{top + plot_height}" x2="{left + plot_width}" y2="{top + plot_height}" stroke="#98a2b3"/>')
+    body.append(f'<line x1="{left}" y1="{top}" x2="{left}" y2="{top + plot_height}" stroke="#98a2b3"/>')
+    body.append(svg_text(x_label, left + plot_width / 2, height - 18, size=12, anchor="middle", fill="#475467"))
+    body.append(svg_text("Mean score", 22, top + plot_height / 2, size=12, anchor="middle", fill="#475467", rotate=-90))
+
+    if show_frontier:
+        frontier: list[tuple[Aggregate, float]] = []
+        best_score = -1.0
+        for agg, value in sorted(points, key=lambda item: item[1] or 0.0):
+            if value is None:
+                continue
+            if agg.mean_score > best_score:
+                frontier.append((agg, value))
+                best_score = agg.mean_score
+
+        if len(frontier) >= 2:
+            coords = [
+                (
+                    left + plot_width * (value / max_x if max_x else 0.0),
+                    top + plot_height * (1 - agg.mean_score),
+                )
+                for agg, value in frontier
+            ]
+            step_coords = [coords[0]]
+            for x, y in coords[1:]:
+                step_coords.append((x, step_coords[-1][1]))
+                step_coords.append((x, y))
+            points_attr = " ".join(f"{x:.2f},{y:.2f}" for x, y in step_coords)
+            body.append(
+                f'<polyline points="{points_attr}" fill="none" stroke="#111827" '
+                'stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"/>'
+            )
+            for x, y in coords:
+                body.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="4" fill="#111827"/>')
+            label_x, label_y = coords[-1]
+            body.append(svg_text("frontier", label_x + 10, label_y - 10, size=11, weight="600", fill="#111827"))
+
+    for agg, value in sorted(points, key=lambda item: item[1] or 0.0):
+        if value is None:
+            continue
+        x = left + plot_width * (value / max_x if max_x else 0.0)
+        y = top + plot_height * (1 - agg.mean_score)
+        color = provider_color(agg.provider, "#475467")
+        body.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="13" fill="#ffffff" stroke="{color}" stroke-width="2"/>')
+        body.append(svg_icon(agg.provider, icons, x - 10, y - 10, 20))
+        label_anchor = "end" if x > left + plot_width - 150 else "start"
+        label_x = x - 18 if label_anchor == "end" else x + 18
+        body.append(svg_text(agg.key, label_x, y - 4, size=11, anchor=label_anchor, weight="600"))
+        body.append(svg_text(f"{agg.passed}/{agg.runs} pass", label_x, y + 12, size=10, anchor=label_anchor, fill="#667085"))
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(svg_doc(width, height, body), encoding="utf-8")
@@ -552,6 +815,8 @@ def write_html_report(
     model_svg: Path,
     task_svg: Path,
     heatmap_svg: Path,
+    score_tokens_svg: Path,
+    score_cost_svg: Path,
     aggregates_path: Path,
     csv_path: Path,
     jsonl_path: Path,
@@ -582,6 +847,10 @@ def write_html_report(
   </p>
   <h2>By Model</h2>
   <img src="{rel(model_svg)}" alt="Results by model">
+  <h2>Performance Vs Tokens</h2>
+  <img src="{rel(score_tokens_svg)}" alt="Mean score versus total tokens">
+  <h2>Performance Vs Cost</h2>
+  <img src="{rel(score_cost_svg)}" alt="Mean score versus recorded cost">
   <h2>By Task</h2>
   <img src="{rel(task_svg)}" alt="Results by task">
   <h2>Task By Model</h2>
@@ -638,6 +907,7 @@ def main() -> None:
         outcomes = dedupe_outcomes(outcomes)
     if not outcomes:
         raise SystemExit("No outcome rows found.")
+    outcomes = enrich_outcomes_with_generation(outcomes)
 
     output_dir = args.output_dir
     task_labels = load_task_labels(args.public_task_dir, args.private_task_dir)
@@ -652,6 +922,8 @@ def main() -> None:
     by_model_svg = output_dir / "by_model.svg"
     by_task_svg = output_dir / "by_task.svg"
     heatmap_svg = output_dir / "task_model_heatmap.svg"
+    score_tokens_svg = output_dir / "score_vs_total_tokens.svg"
+    score_cost_svg = output_dir / "score_vs_total_cost.svg"
     report_html = output_dir / "index.html"
 
     write_jsonl(merged_jsonl, outcomes)
@@ -667,15 +939,36 @@ def main() -> None:
             "inputs": [str(path) for path in inputs],
         },
     )
-    write_bar_chart(by_model_svg, "Results By Model", model_aggregates, icons=icons)
+    write_bar_chart(by_model_svg, "Results By Model", model_aggregates, icons=icons, show_usage=True)
     write_bar_chart(by_task_svg, "Results By Task", task_aggregates, icons=icons)
     write_heatmap(heatmap_svg, "Mean Score By Task And Model", task_model, icons=icons)
+    write_performance_scatter(
+        score_tokens_svg,
+        "Mean Score Vs Total Tokens",
+        model_aggregates,
+        x_value="total_tokens",
+        x_label="Total tokens across all runs",
+        x_format="tokens",
+        icons=icons,
+    )
+    write_performance_scatter(
+        score_cost_svg,
+        "Mean Score Vs Recorded Cost",
+        model_aggregates,
+        x_value="total_cost_usd",
+        x_label="Recorded cost across all runs",
+        x_format="cost",
+        icons=icons,
+        show_frontier=True,
+    )
     write_html_report(
         report_html,
         outcomes=outcomes,
         model_svg=by_model_svg,
         task_svg=by_task_svg,
         heatmap_svg=heatmap_svg,
+        score_tokens_svg=score_tokens_svg,
+        score_cost_svg=score_cost_svg,
         aggregates_path=aggregates_json,
         csv_path=merged_csv,
         jsonl_path=merged_jsonl,
@@ -688,7 +981,13 @@ def main() -> None:
                 "runs": len(outcomes),
                 "output_dir": str(output_dir),
                 "report": str(report_html),
-                "plots": [str(by_model_svg), str(by_task_svg), str(heatmap_svg)],
+                "plots": [
+                    str(by_model_svg),
+                    str(by_task_svg),
+                    str(heatmap_svg),
+                    str(score_tokens_svg),
+                    str(score_cost_svg),
+                ],
             },
             indent=2,
             ensure_ascii=False,
