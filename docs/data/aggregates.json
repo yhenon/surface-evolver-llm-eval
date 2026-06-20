@@ -1,7 +1,7 @@
 {
-  "runs": 118,
+  "runs": 117,
   "passed": 27,
-  "mean_score": 0.4491525423728814,
+  "mean_score": 0.452991452991453,
   "by_model": [
     {
       "key": "gpt-5.5",
@@ -117,16 +117,16 @@
     },
     {
       "key": "trinity-large-thinking",
-      "runs": 14,
+      "runs": 13,
       "passed": 0,
       "pass_rate": 0.0,
-      "mean_score": 0.08571428571428572,
-      "mean_duration_s": 551.3438571428571,
-      "total_tokens": 1841788,
-      "mean_total_tokens": 153482.33333333334,
-      "total_cost_usd": 1.03526447,
-      "mean_total_cost_usd": 0.08627203916666666,
-      "costed_runs": 12,
+      "mean_score": 0.0923076923076923,
+      "mean_duration_s": 577.0676923076924,
+      "total_tokens": 1529328,
+      "mean_total_tokens": 152932.8,
+      "total_cost_usd": 0.89810367,
+      "mean_total_cost_usd": 0.089810367,
+      "costed_runs": 10,
       "provider": "arcee"
     }
   ],
@@ -216,6 +216,20 @@
       "provider": null
     },
     {
+      "key": "private/groove_00",
+      "runs": 9,
+      "passed": 1,
+      "pass_rate": 0.1111111111111111,
+      "mean_score": 0.47777777777777775,
+      "mean_duration_s": 810.6942222222223,
+      "total_tokens": 2618310,
+      "mean_total_tokens": 374044.28571428574,
+      "total_cost_usd": 2.824525156,
+      "mean_total_cost_usd": 0.40350359371428574,
+      "costed_runs": 7,
+      "provider": null
+    },
+    {
       "key": "private/droplet_02",
       "runs": 9,
       "passed": 1,
@@ -269,20 +283,6 @@
       "total_cost_usd": 1.5180586312500002,
       "mean_total_cost_usd": 0.18975732890625002,
       "costed_runs": 8,
-      "provider": null
-    },
-    {
-      "key": "private/groove_00",
-      "runs": 10,
-      "passed": 1,
-      "pass_rate": 0.1,
-      "mean_score": 0.43,
-      "mean_duration_s": 751.3182,
-      "total_tokens": 2930770,
-      "mean_total_tokens": 325641.1111111111,
-      "total_cost_usd": 2.961685956,
-      "mean_total_cost_usd": 0.32907621733333337,
-      "costed_runs": 9,
       "provider": null
     },
     {

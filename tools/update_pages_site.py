@@ -9,7 +9,13 @@ import sys
 from pathlib import Path
 
 
-CHARTS = ("by_model.svg", "by_task.svg", "task_model_heatmap.svg")
+CHARTS = (
+    "by_model.svg",
+    "score_vs_total_tokens.svg",
+    "score_vs_total_cost.svg",
+    "by_task.svg",
+    "task_model_heatmap.svg",
+)
 DATA_FILES = ("aggregates.json",)
 
 

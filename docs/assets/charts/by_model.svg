@@ -93,8 +93,8 @@
 <rect x="230" y="527" width="520" height="13" rx="2" fill="#eef1f4"/>
 <rect x="230" y="545" width="520" height="13" rx="2" fill="#eef1f4"/>
 <rect x="230" y="527" width="0.00" height="13" rx="2" fill="#16a34a"/>
-<rect x="230" y="545" width="44.57" height="13" rx="2" fill="#b9e3c8"/>
-<text x="768.00" y="541.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">0/14 pass, score 0.09</text>
-<text x="920.00" y="541.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">1.8M tok, $1.04</text>
-<text x="920.00" y="559.00" font-size="10" font-weight="400" text-anchor="start" fill="#667085">avg 153k tok/run, $0.086/run</text>
+<rect x="230" y="545" width="48.00" height="13" rx="2" fill="#b9e3c8"/>
+<text x="768.00" y="541.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">0/13 pass, score 0.09</text>
+<text x="920.00" y="541.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">1.5M tok, $0.898</text>
+<text x="920.00" y="559.00" font-size="10" font-weight="400" text-anchor="start" fill="#667085">avg 153k tok/run, $0.090/run</text>
 </svg>
