@@ -5,7 +5,7 @@ import base64
 import csv
 import html
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -46,8 +46,14 @@ SUMMARY_FIELDS = (
     "prompt_cost_usd",
     "completion_cost_usd",
     "cost_rounds",
+    "assistant_turns",
+    "tool_calls_total",
+    "doc_tool_calls",
+    "evolver_tool_calls",
+    "submit_tool_calls",
     "out_dir",
     "generation_path",
+    "transcript_path",
     "error",
 )
 
@@ -100,6 +106,21 @@ PROVIDER_ALIASES = (
     ("poolside", ("poolside/", "poolside")),
     ("openai", ("openai/", "gpt-", "gpt_", "o1", "o3", "o4")),
 )
+
+
+TOOL_ORDER = ("get_evolver_doc", "run_surface_evolver", "submit_fe_file", "other")
+TOOL_LABELS = {
+    "get_evolver_doc": "Docs",
+    "run_surface_evolver": "Evolver",
+    "submit_fe_file": "Submit",
+    "other": "Other",
+}
+TOOL_COLORS = {
+    "get_evolver_doc": "#4f7d3f",
+    "run_surface_evolver": "#275cad",
+    "submit_fe_file": "#d77a28",
+    "other": "#98a2b3",
+}
 
 
 def load_jsonl(path: Path) -> list[Outcome]:
@@ -253,6 +274,16 @@ def generation_path_for_row(row: Outcome) -> Path | None:
     return None
 
 
+def transcript_path_for_row(row: Outcome) -> Path | None:
+    transcript_path = row.get("transcript_path")
+    if transcript_path:
+        return Path(str(transcript_path))
+    out_dir = row.get("out_dir")
+    if out_dir:
+        return Path(str(out_dir)) / "transcript.json"
+    return None
+
+
 def cost_usage_from_generation(generation: Outcome) -> dict[str, Any] | None:
     token_usage = generation.get("token_usage") or {}
     per_round = token_usage.get("per_round") or []
@@ -284,41 +315,71 @@ def cost_usage_from_generation(generation: Outcome) -> dict[str, Any] | None:
     }
 
 
+def interaction_usage_from_transcript(transcript: list[Outcome]) -> dict[str, Any]:
+    assistant_turns = sum(1 for item in transcript if item.get("role") == "assistant")
+    tool_counts: Counter[str] = Counter()
+    for item in transcript:
+        if item.get("role") != "tool":
+            continue
+        name = str(item.get("name") or "other")
+        if name not in TOOL_ORDER:
+            name = "other"
+        tool_counts[name] += 1
+
+    return {
+        "available": True,
+        "assistant_turns": assistant_turns,
+        "tool_calls_total": sum(tool_counts.values()),
+        "tool_calls": {name: tool_counts.get(name, 0) for name in TOOL_ORDER},
+    }
+
+
 def enrich_outcomes_with_generation(outcomes: Iterable[Outcome]) -> list[Outcome]:
     enriched: list[Outcome] = []
     generation_cache: dict[Path, Outcome | None] = {}
+    transcript_cache: dict[Path, list[Outcome] | None] = {}
 
     for row in outcomes:
         copy = dict(row)
         path = generation_path_for_row(copy)
-        if path is None:
-            enriched.append(copy)
-            continue
+        if path is not None:
+            generation = generation_cache.get(path)
+            if path not in generation_cache:
+                if path.exists():
+                    generation = json.loads(path.read_text(encoding="utf-8"))
+                else:
+                    generation = None
+                generation_cache[path] = generation
 
-        generation = generation_cache.get(path)
-        if path not in generation_cache:
-            if path.exists():
-                generation = json.loads(path.read_text(encoding="utf-8"))
-            else:
-                generation = None
-            generation_cache[path] = generation
+            if generation is not None:
+                token_usage = generation.get("token_usage") or {}
+                totals = token_usage.get("totals") if isinstance(token_usage.get("totals"), dict) else {}
+                if totals:
+                    merged_usage = dict(copy.get("token_usage") or {})
+                    for key, value in totals.items():
+                        merged_usage.setdefault(key, value)
+                    copy["token_usage"] = merged_usage
 
-        if generation is None:
-            enriched.append(copy)
-            continue
+                cost_usage = cost_usage_from_generation(generation)
+                if cost_usage:
+                    copy["cost_usage"] = cost_usage
+                copy.setdefault("generation_path", str(path))
+                if generation.get("transcript_path"):
+                    copy.setdefault("transcript_path", generation.get("transcript_path"))
 
-        token_usage = generation.get("token_usage") or {}
-        totals = token_usage.get("totals") if isinstance(token_usage.get("totals"), dict) else {}
-        if totals:
-            merged_usage = dict(copy.get("token_usage") or {})
-            for key, value in totals.items():
-                merged_usage.setdefault(key, value)
-            copy["token_usage"] = merged_usage
+        transcript_path = transcript_path_for_row(copy)
+        if transcript_path is not None:
+            transcript = transcript_cache.get(transcript_path)
+            if transcript_path not in transcript_cache:
+                if transcript_path.exists():
+                    transcript = json.loads(transcript_path.read_text(encoding="utf-8"))
+                else:
+                    transcript = None
+                transcript_cache[transcript_path] = transcript
+            if transcript is not None:
+                copy["interaction_usage"] = interaction_usage_from_transcript(transcript)
+                copy.setdefault("transcript_path", str(transcript_path))
 
-        cost_usage = cost_usage_from_generation(generation)
-        if cost_usage:
-            copy["cost_usage"] = cost_usage
-        copy.setdefault("generation_path", str(path))
         enriched.append(copy)
 
     return enriched
@@ -399,6 +460,8 @@ def write_jsonl(path: Path, rows: list[Outcome]) -> None:
 def csv_row(row: Outcome, task_labels: TaskLabels) -> dict[str, Any]:
     usage = row.get("token_usage") or {}
     cost_usage = row.get("cost_usage") or {}
+    interaction_usage = row.get("interaction_usage") or {}
+    tool_calls = interaction_usage.get("tool_calls") or {}
     return {
         "matrix_id": row.get("matrix_id"),
         "started_at": row.get("started_at"),
@@ -429,8 +492,14 @@ def csv_row(row: Outcome, task_labels: TaskLabels) -> dict[str, Any]:
         "prompt_cost_usd": cost_usage.get("prompt_cost_usd"),
         "completion_cost_usd": cost_usage.get("completion_cost_usd"),
         "cost_rounds": cost_usage.get("rounds"),
+        "assistant_turns": interaction_usage.get("assistant_turns"),
+        "tool_calls_total": interaction_usage.get("tool_calls_total"),
+        "doc_tool_calls": tool_calls.get("get_evolver_doc"),
+        "evolver_tool_calls": tool_calls.get("run_surface_evolver"),
+        "submit_tool_calls": tool_calls.get("submit_fe_file"),
         "out_dir": row.get("out_dir"),
         "generation_path": row.get("generation_path"),
+        "transcript_path": row.get("transcript_path"),
         "error": row.get("error"),
     }
 
@@ -462,6 +531,46 @@ def aggregate_payload(aggregates: list[Aggregate]) -> list[dict[str, Any]]:
         }
         for agg in aggregates
     ]
+
+
+def interaction_payload(outcomes: list[Outcome]) -> list[dict[str, Any]]:
+    buckets: dict[str, list[Outcome]] = defaultdict(list)
+    for row in outcomes:
+        if row.get("interaction_usage"):
+            buckets[model_key(row)].append(row)
+
+    rows: list[dict[str, Any]] = []
+    for model, model_rows in buckets.items():
+        run_count = len(model_rows)
+        tool_totals: Counter[str] = Counter()
+        assistant_turns = 0
+        passed = 0
+        score_sum = 0.0
+        for row in model_rows:
+            usage = row.get("interaction_usage") or {}
+            assistant_turns += int(usage.get("assistant_turns") or 0)
+            tool_totals.update(usage.get("tool_calls") or {})
+            passed += bool_int(row.get("passed"))
+            score_sum += score(row)
+
+        rows.append(
+            {
+                "key": model,
+                "runs": run_count,
+                "passed": passed,
+                "pass_rate": passed / run_count if run_count else 0.0,
+                "mean_score": score_sum / run_count if run_count else 0.0,
+                "provider": provider_for_row(model_rows[0]),
+                "mean_assistant_turns": assistant_turns / run_count if run_count else 0.0,
+                "mean_tool_calls": sum(tool_totals.values()) / run_count if run_count else 0.0,
+                "mean_tool_calls_by_name": {
+                    name: tool_totals.get(name, 0) / run_count if run_count else 0.0
+                    for name in TOOL_ORDER
+                },
+            }
+        )
+
+    return sorted(rows, key=lambda row: (-float(row["pass_rate"]), -float(row["mean_score"]), str(row["key"])))
 
 
 def svg_text(
@@ -647,6 +756,83 @@ def write_bar_chart(
                     fill="#667085",
                 )
             )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(svg_doc(width, height, body), encoding="utf-8")
+
+
+def write_interaction_chart(
+    path: Path,
+    title: str,
+    rows: list[dict[str, Any]],
+    *,
+    icons: dict[str, str],
+) -> None:
+    max_label_len = max((len(str(row["key"])) for row in rows), default=10)
+    icon_gutter = 34 if any(row.get("provider") for row in rows) else 0
+    label_width = min(max(210, max_label_len * 7 + 42 + icon_gutter), 430)
+    plot_width = 540
+    value_width = 250
+    top = 98
+    row_h = 48
+    bottom = 54
+    width = label_width + plot_width + value_width
+    height = top + max(1, len(rows)) * row_h + bottom
+    x0 = label_width
+    max_calls = max((float(row.get("mean_tool_calls") or 0.0) for row in rows), default=1.0)
+    if max_calls <= 0:
+        max_calls = 1.0
+
+    body: list[str] = [
+        svg_text(title, 24, 34, size=20, weight="700"),
+        svg_text("Average tool calls per run, stacked by tool. Text shows average assistant turns.", 24, 58, size=12, fill="#667085"),
+    ]
+
+    legend_x = x0
+    for name in TOOL_ORDER:
+        body.append(f'<rect x="{legend_x:.2f}" y="72" width="11" height="11" rx="2" fill="{TOOL_COLORS[name]}"/>')
+        body.append(svg_text(TOOL_LABELS[name], legend_x + 16, 82, size=11, fill="#475467"))
+        legend_x += 88
+
+    for tick in axis_ticks(max_calls):
+        x = x0 + plot_width * (tick / max_calls if max_calls else 0.0)
+        body.append(f'<line x1="{x:.2f}" y1="{top - 12}" x2="{x:.2f}" y2="{height - bottom + 6}" stroke="#e3e7eb"/>')
+        body.append(svg_text(f"{tick:.1f}", x, height - 22, size=11, anchor="middle", fill="#667085"))
+    body.append(svg_text("Tool calls / run", x0 + plot_width / 2, height - 4, size=11, anchor="middle", fill="#667085"))
+
+    for index, row in enumerate(rows):
+        y = top + index * row_h
+        label_x = 24
+        provider = row.get("provider")
+        if provider:
+            body.append(svg_icon(str(provider), icons, label_x, y + 10, 24))
+            label_x += 34
+        body.append(svg_text(str(row["key"]), label_x, y + 28, size=12, weight="600"))
+
+        body.append(f'<rect x="{x0}" y="{y + 13}" width="{plot_width}" height="18" rx="2" fill="#eef1f4"/>')
+        cursor = x0
+        by_name = row.get("mean_tool_calls_by_name") or {}
+        for name in TOOL_ORDER:
+            value = float(by_name.get(name) or 0.0)
+            segment_w = plot_width * value / max_calls
+            if segment_w <= 0:
+                continue
+            body.append(
+                f'<rect x="{cursor:.2f}" y="{y + 13}" width="{segment_w:.2f}" '
+                f'height="18" rx="2" fill="{TOOL_COLORS[name]}"/>'
+            )
+            cursor += segment_w
+
+        body.append(
+            svg_text(
+                f"{float(row.get('mean_assistant_turns') or 0.0):.1f} turns, "
+                f"{float(row.get('mean_tool_calls') or 0.0):.1f} tools/run",
+                x0 + plot_width + 18,
+                y + 27,
+                size=11,
+                fill="#344054",
+            )
+        )
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(svg_doc(width, height, body), encoding="utf-8")
@@ -850,6 +1036,7 @@ def write_html_report(
     *,
     outcomes: list[Outcome],
     model_svg: Path,
+    interaction_svg: Path,
     task_svg: Path,
     heatmap_svg: Path,
     score_tokens_svg: Path,
@@ -884,6 +1071,8 @@ def write_html_report(
   </p>
   <h2>By Model</h2>
   <img src="{rel(model_svg)}" alt="Results by model">
+  <h2>Tool Calls And Turns</h2>
+  <img src="{rel(interaction_svg)}" alt="Stacked bar chart of average tool calls and assistant turns by model">
   <h2>Performance Vs Tokens</h2>
   <img src="{rel(score_tokens_svg)}" alt="Mean score versus total tokens">
   <h2>Performance Vs Cost</h2>
@@ -951,12 +1140,14 @@ def main() -> None:
     model_aggregates = aggregate_by(outcomes, "model", task_labels)
     task_aggregates = aggregate_by(outcomes, "task", task_labels)
     task_model = aggregate_task_model(outcomes, task_labels)
+    interactions = interaction_payload(outcomes)
     icons = load_provider_icons(None if args.no_icons else args.icon_dir)
 
     merged_jsonl = output_dir / "merged_outcomes.jsonl"
     merged_csv = output_dir / "merged_outcomes.csv"
     aggregates_json = output_dir / "aggregates.json"
     by_model_svg = output_dir / "by_model.svg"
+    interactions_svg = output_dir / "model_tool_usage.svg"
     by_task_svg = output_dir / "by_task.svg"
     heatmap_svg = output_dir / "task_model_heatmap.svg"
     score_tokens_svg = output_dir / "score_vs_total_tokens.svg"
@@ -973,10 +1164,12 @@ def main() -> None:
             "mean_score": sum(score(row) for row in outcomes) / len(outcomes),
             "by_model": aggregate_payload(model_aggregates),
             "by_task": aggregate_payload(task_aggregates),
+            "by_model_interactions": interactions,
             "inputs": [str(path) for path in inputs],
         },
     )
     write_bar_chart(by_model_svg, "Results By Model", model_aggregates, icons=icons, show_usage=True)
+    write_interaction_chart(interactions_svg, "Tool Calls And Turns By Model", interactions, icons=icons)
     write_bar_chart(by_task_svg, "Results By Task", task_aggregates, icons=icons)
     write_heatmap(heatmap_svg, "Mean Score By Task And Model", task_model, icons=icons)
     write_performance_scatter(
@@ -1002,6 +1195,7 @@ def main() -> None:
         report_html,
         outcomes=outcomes,
         model_svg=by_model_svg,
+        interaction_svg=interactions_svg,
         task_svg=by_task_svg,
         heatmap_svg=heatmap_svg,
         score_tokens_svg=score_tokens_svg,
@@ -1020,6 +1214,7 @@ def main() -> None:
                 "report": str(report_html),
                 "plots": [
                     str(by_model_svg),
+                    str(interactions_svg),
                     str(by_task_svg),
                     str(heatmap_svg),
                     str(score_tokens_svg),

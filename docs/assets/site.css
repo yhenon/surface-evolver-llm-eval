@@ -161,15 +161,9 @@ h1 {
 .hero-visual img {
   aspect-ratio: 1;
   background: var(--accent-warm-soft);
-  border: 1px solid var(--line);
   display: block;
   object-fit: cover;
   width: 100%;
-}
-
-.hero-visual img:first-child {
-  grid-column: 1 / -1;
-  max-height: 360px;
 }
 
 .section {
@@ -406,14 +400,6 @@ tbody tr:last-child td {
   .hero {
     min-height: auto;
     padding-top: 38px;
-  }
-
-  .hero-visual {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .hero-visual img:first-child {
-    grid-column: auto;
   }
 
   .metrics-grid {

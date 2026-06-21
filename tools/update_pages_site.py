@@ -11,6 +11,7 @@ from pathlib import Path
 
 CHARTS = (
     "by_model.svg",
+    "model_tool_usage.svg",
     "score_vs_total_tokens.svg",
     "score_vs_total_cost.svg",
     "by_task.svg",

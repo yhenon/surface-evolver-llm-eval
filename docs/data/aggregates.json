@@ -328,6 +328,168 @@
       "provider": null
     }
   ],
+  "by_model_interactions": [
+    {
+      "key": "gpt-5.5 (high)",
+      "runs": 13,
+      "passed": 11,
+      "pass_rate": 0.8461538461538461,
+      "mean_score": 0.9153846153846152,
+      "provider": "openai",
+      "mean_assistant_turns": 5.846153846153846,
+      "mean_tool_calls": 5.846153846153846,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 2.769230769230769,
+        "run_surface_evolver": 2.076923076923077,
+        "submit_fe_file": 1.0,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "gpt-5.5 (medium)",
+      "runs": 13,
+      "passed": 8,
+      "pass_rate": 0.6153846153846154,
+      "mean_score": 0.8,
+      "provider": "openai",
+      "mean_assistant_turns": 5.384615384615385,
+      "mean_tool_calls": 5.3076923076923075,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 2.3076923076923075,
+        "run_surface_evolver": 2.0,
+        "submit_fe_file": 1.0,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "gemini-3.5-flash (medium)",
+      "runs": 13,
+      "passed": 6,
+      "pass_rate": 0.46153846153846156,
+      "mean_score": 0.6692307692307692,
+      "provider": "gemini",
+      "mean_assistant_turns": 5.6923076923076925,
+      "mean_tool_calls": 5.6923076923076925,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 2.3076923076923075,
+        "run_surface_evolver": 2.5384615384615383,
+        "submit_fe_file": 0.8461538461538461,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "kimi-k2.7-code",
+      "runs": 13,
+      "passed": 5,
+      "pass_rate": 0.38461538461538464,
+      "mean_score": 0.5692307692307692,
+      "provider": "kimi",
+      "mean_assistant_turns": 6.384615384615385,
+      "mean_tool_calls": 6.538461538461538,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 2.769230769230769,
+        "run_surface_evolver": 3.076923076923077,
+        "submit_fe_file": 0.6923076923076923,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "qwen3.6-35b-a3b",
+      "runs": 12,
+      "passed": 2,
+      "pass_rate": 0.16666666666666666,
+      "mean_score": 0.5166666666666665,
+      "provider": "qwen",
+      "mean_assistant_turns": 6.583333333333333,
+      "mean_tool_calls": 6.583333333333333,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 2.8333333333333335,
+        "run_surface_evolver": 2.75,
+        "submit_fe_file": 1.0,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "deepseek-v4-pro (high)",
+      "runs": 12,
+      "passed": 2,
+      "pass_rate": 0.16666666666666666,
+      "mean_score": 0.3916666666666666,
+      "provider": "deepseek",
+      "mean_assistant_turns": 6.666666666666667,
+      "mean_tool_calls": 8.833333333333334,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 4.666666666666667,
+        "run_surface_evolver": 3.5,
+        "submit_fe_file": 0.6666666666666666,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "minimax-m3",
+      "runs": 13,
+      "passed": 2,
+      "pass_rate": 0.15384615384615385,
+      "mean_score": 0.5615384615384614,
+      "provider": "minimax",
+      "mean_assistant_turns": 5.384615384615385,
+      "mean_tool_calls": 6.076923076923077,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 3.4615384615384617,
+        "run_surface_evolver": 1.6153846153846154,
+        "submit_fe_file": 1.0,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "trinity-large-thinking",
+      "runs": 11,
+      "passed": 1,
+      "pass_rate": 0.09090909090909091,
+      "mean_score": 0.2,
+      "provider": "arcee",
+      "mean_assistant_turns": 6.181818181818182,
+      "mean_tool_calls": 4.545454545454546,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 2.6363636363636362,
+        "run_surface_evolver": 1.2727272727272727,
+        "submit_fe_file": 0.6363636363636364,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "gemma-4-31b-it (none)",
+      "runs": 12,
+      "passed": 1,
+      "pass_rate": 0.08333333333333333,
+      "mean_score": 0.33333333333333326,
+      "provider": "gemma",
+      "mean_assistant_turns": 6.5,
+      "mean_tool_calls": 6.666666666666667,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 1.0,
+        "run_surface_evolver": 4.666666666666667,
+        "submit_fe_file": 1.0,
+        "other": 0.0
+      }
+    },
+    {
+      "key": "mistral-medium-3-5 (high)",
+      "runs": 13,
+      "passed": 1,
+      "pass_rate": 0.07692307692307693,
+      "mean_score": 0.23846153846153847,
+      "provider": "mistral",
+      "mean_assistant_turns": 7.384615384615385,
+      "mean_tool_calls": 7.384615384615385,
+      "mean_tool_calls_by_name": {
+        "get_evolver_doc": 1.8461538461538463,
+        "run_surface_evolver": 4.615384615384615,
+        "submit_fe_file": 0.9230769230769231,
+        "other": 0.0
+      }
+    }
+  ],
   "inputs": [
     "runs"
   ]
