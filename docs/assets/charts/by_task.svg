@@ -1,20 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="929" height="718" viewBox="0 0 929 718">
+<svg xmlns="http://www.w3.org/2000/svg" width="929" height="764" viewBox="0 0 929 764">
 <rect width="100%" height="100%" fill="#fbfcfd"/>
 <style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}</style>
 <text x="24.00" y="34.00" font-size="20" font-weight="700" text-anchor="start" fill="#18202a">Results By Task</text>
 <text x="189.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#475467">Pass rate</text>
 <text x="271.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#98a2b3">Mean score</text>
 <text x="727.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#475467">Outcome</text>
-<line x1="189.00" y1="60" x2="189.00" y2="676" stroke="#e3e7eb"/>
-<text x="189.00" y="698.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">0%</text>
-<line x1="319.00" y1="60" x2="319.00" y2="676" stroke="#e3e7eb"/>
-<text x="319.00" y="698.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">25%</text>
-<line x1="449.00" y1="60" x2="449.00" y2="676" stroke="#e3e7eb"/>
-<text x="449.00" y="698.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">50%</text>
-<line x1="579.00" y1="60" x2="579.00" y2="676" stroke="#e3e7eb"/>
-<text x="579.00" y="698.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">75%</text>
-<line x1="709.00" y1="60" x2="709.00" y2="676" stroke="#e3e7eb"/>
-<text x="709.00" y="698.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">100%</text>
+<line x1="189.00" y1="60" x2="189.00" y2="722" stroke="#e3e7eb"/>
+<text x="189.00" y="744.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">0%</text>
+<line x1="319.00" y1="60" x2="319.00" y2="722" stroke="#e3e7eb"/>
+<text x="319.00" y="744.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">25%</text>
+<line x1="449.00" y1="60" x2="449.00" y2="722" stroke="#e3e7eb"/>
+<text x="449.00" y="744.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">50%</text>
+<line x1="579.00" y1="60" x2="579.00" y2="722" stroke="#e3e7eb"/>
+<text x="579.00" y="744.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">75%</text>
+<line x1="709.00" y1="60" x2="709.00" y2="722" stroke="#e3e7eb"/>
+<text x="709.00" y="744.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">100%</text>
 <text x="24.00" y="98.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">public/two_bubbles_2d</text>
 <rect x="189" y="79" width="520" height="13" rx="2" fill="#eef1f4"/>
 <rect x="189" y="97" width="520" height="13" rx="2" fill="#eef1f4"/>
@@ -93,4 +93,10 @@
 <rect x="189" y="631" width="0.00" height="13" rx="2" fill="#1b998b"/>
 <rect x="189" y="649" width="171.60" height="13" rx="2" fill="#4f6bed"/>
 <text x="727.00" y="652.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">0/10 pass, score 0.33</text>
+<text x="24.00" y="696.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/groove_02</text>
+<rect x="189" y="677" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="695" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="189" y="677" width="0.00" height="13" rx="2" fill="#1b998b"/>
+<rect x="189" y="695" width="124.80" height="13" rx="2" fill="#4f6bed"/>
+<text x="727.00" y="698.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">0/10 pass, score 0.24</text>
 </svg>

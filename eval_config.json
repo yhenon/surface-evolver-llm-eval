@@ -45,6 +45,10 @@
       "name": "gpt-5.5-high",
       "model": "openai/gpt-5.5",
       "reasoning_effort": "high"
+    },
+    {
+      "name": "claude-opus-4.8",
+      "model": "anthropic/claude-opus-4.8"
     }
   ]
 }
