@@ -55,6 +55,10 @@
       "name": "claude-opus-4.8-high",
       "model": "anthropic/claude-opus-4.8",
       "reasoning_effort": "high"
+    },
+    {
+      "name": "poolside-laguna-m.1",
+      "model": "poolside/laguna-m.1"
     }
   ]
 }

@@ -22,9 +22,9 @@
   <main>
     <section class="hero" aria-labelledby="page-title">
       <div class="hero-copy">
-        <h1 id="page-title">Can models write Surface Evolver files that actually run?</h1>
+        <h1 id="page-title">title?</h1>
         <p class="lede">
-          This eval asks language models to produce Surface Evolver datafiles, run simulations, and pass deterministic geometry checks.
+          subheader.
         </p>
         <div class="actions">
           <a class="button" href="#results">View results</a>
@@ -45,10 +45,10 @@
         <div class="narrative-block">
           <h3>What this eval measures</h3>
           <p>
-            Each task asks a model to write a complete Surface Evolver datafile for a liquid-interface geometry. The answer has to be more than plausible syntax: it must load in Surface Evolver, run through an external command script, and satisfy deterministic geometry checks.
+            Surface Evolver is a tool I used in my grad school days for simulating behavior of liquid-air interfaces. Back then, it was rather tricky getting simulations up and running, taking days or even weeks for the most complex cases. So I naturally wanted to understand how LLMs would fare.
           </p>
           <p>
-            The setup gives models a small tool loop: read curated documentation, run a candidate `.fe` file, inspect feedback, repair the file, and submit the final raw artifact. Scores combine static datafile checks, hidden Evolver execution, and numerical metric checks.
+            paragraph 2.
           </p>
         </div>
         <div class="chart-stack">
@@ -79,24 +79,16 @@
         <div class="narrative-block">
           <h2 id="method-title">Why another LLM benchmark?</h2>
           <p>
-            There are already many benchmarks out there, which naturally poses the question of why create another one?
+            There are already many benchmarks out there, which naturally poses the question of why create another yet another one.
           </p>
           <p>
-            For one, I wanted to write my own. It's well understood that the best way to learn something is by doing, so I wanted to understand what agentic and tool-calling AI actually meant.
+            For one, I wanted to. I thought it would be a good way to improve my understanding of the current capabilities of LLMs, which it absolutely did. So what did I learn?
           </p>
-          <p>
-            Surface Evolver is a tool I used in my grad school days for simulating behavior of liquid-air interfaces. Back then, it was rather tricky getting simulations up and running, taking days or even weeks for the most complex cases. So I naturally wanted to understand how LLMs would fare.
-          </p>
-          <p>I thought it would be interesting from a pure LLM point of view since:</p>
           <ul>
-            <li>Models have seen some Surface Evolver in the training data, but not too much.</li>
-            <li>Surface Evolver naturally uses text as its interface.</li>
-            <li>The workflow is genuinely agentic: define a datafile, run it, collect feedback, repair it, and try again.</li>
-          </ul>
-          <p>What I learned:</p>
-          <ul>
-            <li>You often hear "the harness is everything," and this is indeed true. The available tool calls, docs, and feedback loop make a huge difference for performance.</li>
-            <li><em>Todo: keep writing.</em></li>
+            <li>You often hear "the harness is everything," and this is indeed true. The available tool calls, docs, and feedback loop make a huge difference for performance. My first versions had performance close to zero when docs were not accessible, the interaction with Surface Evolver was limited, etc</li>
+            <li>LLMs have a surprisingly strong understand of 3D geometry. I usually need to make a large sketch of the surface I am simulating, but they can seemingly deal with 3D structures with 20-30 vertices, tens of edges and faces in pure text.</li>
+            <li>LLMs are the real deal. There is a lot of debate over whether they are true intelligence, but clearly they can master a task that is challenging for many grad students from limited training data.</li>
+            <li>You do not have frontier intelligence at home (unless you live in a data center). This is unfortunate, but no small model performs well</li>
           </ul>
         </div>
       </div>
