@@ -1,8 +1,30 @@
 # Surface Evolver Bench
 
-This repository benchmarks whether language models can write valid
+<p align="center">
+  <img src="docs/assets/illustrations/1.png" alt="Rendered Surface Evolver geometry example" width="23%">
+  <img src="docs/assets/illustrations/2.png" alt="Rendered minimal surface geometry example" width="23%">
+  <img src="docs/assets/illustrations/3.png" alt="Rendered Surface Evolver bridge example" width="23%">
+  <img src="docs/assets/illustrations/4.png" alt="Rendered Surface Evolver capillary surface example" width="23%">
+</p>
+
+<p align="center"><em>Rendered Surface Evolver examples: simulated liquid in green, solid constraints in orange.</em></p>
+
+How good are large language models at writing complex physical simulations in a
+custom data format?
+
+Surface Evolver Bench asks models to write complete
 [Surface Evolver](https://kenbrakke.com/evolver/evolver.html) `.fe` datafiles
-for geometry and minimal-surface modeling tasks.
+for liquid surfaces shaped by geometry, constraints, contact angles, gravity,
+and volume/area terms. The generated file is not judged by vibes or by another
+model: it has to load in Evolver, run through hidden scripts, and match measured
+physical quantities from reference solutions.
+
+[Surface Evolver](https://kenbrakke.com/evolver/evolver.html) is a tool
+released in 1992 (!) for modeling liquid surfaces. It is useful for tasks such
+as studying solder deposition on chips, modeling liquid fuel tanks, or designing
+lab-on-a-chip networks. A simulation is defined using Evolver's custom datafile
+syntax: vertices, edges, faces, bodies, constraints, energies, and boundary
+integrals.
 
 Surface Evolver is powerful, terse, and niche. A correct answer is not just a
 plausible-looking text file: the model has to choose the right datafile
