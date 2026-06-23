@@ -59,13 +59,15 @@
             <a href="https://kenbrakke.com/evolver/evolver.html">Surface Evolver</a> is a tool released in 1992 (!) for modeling liquid surfaces. It is useful for tasks such as studying solder deposition on chips, modeling liquid fuel tanks or designing lab-on-a-chip networks.
           </p>
           <p>
-            Simulating a liquid means defining a geometry (vertices, edges, faces and bodies) in Evolver's custom datafile language, and encoding the physics too. The key trick: for wetted liquid-solid boundaries we don't mesh the surface at all. We leave a 'hole' in the mesh and use Green's theorem to turn its area into a boundary integral:
 
-                                  \[
+            A simulation is defined in Evolver's custom datafile language: vertices, edges, faces, bodies, constraints, energies, and sometimes hand-written boundary integrals.
+          </p>
+          <p>
+            A typical example is a droplet on a solid surface. Instead of explicitly meshing the wetted liquid–solid patch, we leave a "hole" in the mesh and recover its area from a line integral around the boundary (the contact line). For a flat patch in the z = 0 plane, Green's theorem gives
+              \[
               A = \frac{1}{2}\oint_{\partial A} \left(x\,dy - y\,dx\right).
-            \]
-
-            This avoids mesh refinement, equiangulation, and stretching or disappearing triangles at the cost of a more complex datafile and hand-written constraints.
+              \]
+            This avoids tracking and refining substrate facets as the contact line moves, but it makes the datafile much harder to write correctly: orientation, constraints, contact-angle energies, and volume terms all have to line up.
 
           </p>
           <figure class="narrative-figure compact">
@@ -85,16 +87,16 @@
           </p>
           <ul>
             <li>Define complex 3D structures using vertices, edges and facets with minimal visual feedback.</li>
-            <li>Apply physics-based constraints, like hydrophobic or hydrophilic surfaces, gravity terms, external forces and area minimization terms.</li>
-            <li>Correctly apply Green's theorem to transform area minimization constraints into boundary integrals.</li>
+            <li>Apply physics-based terms such as contact-angle energies (representing hydrophobic or hydrophilic surfaces), gravity, external forces, volume constraints, and area minimization.</li>
+            <li>Correctly use boundary and content integrals to account for omitted wetted surfaces.</li>
             <li>Generalize from sparse examples in a low-resource domain.</li>
           </ul>
           <p>
-            Model grading:
+            How it is graded:
           </p>
           <ul>
             <li>No LLM-as-a-judge.</li>
-            <li>For each task, I carefully wrote a ground truth solution and simulated the converged liquid shape. For grading, the shape’s volume, area, and energy are compared between the simulated solution and ground truth solution.</li>
+            <li>For each task, I wrote a reference solution and simulated the converged liquid shape. For grading, the shape’s volume, area, and energy are compared between the simulated solution and ground truth solution.</li>
             <li>There are partial points for submitting a valid file, having a correct initial geometry and writing constraints correctly.</li>
           </ul>
         </div>
@@ -140,7 +142,7 @@
           <ul>
             <li>You often hear "the harness is everything," and this is indeed true. The available tool calls, docs, and feedback loop make a huge difference for performance. My first versions had performance close to zero when docs were not accessible, the interaction with Surface Evolver was limited, etc.</li>
             <li>LLMs have a surprisingly strong understanding of 3D geometry. I usually need to make a large sketch of the surface I am simulating, but they can seemingly deal with 3D structures with 20-30 vertices, tens of edges and faces in pure text.</li>
-            <li>LLMs are the real deal. There is a lot of debate over whether they are true intelligence, but clearly they can master a task that is challenging for many grad students from limited training data.</li>
+            <li>LLMs are the real deal. There is a lot of debate over whether they are true intelligence, but clearly they can contribute significantly to a task that is challenging for many grad students from limited training data.</li>
             <li>You do not have frontier intelligence at home (unless you live in a data center). This is unfortunate, but no small model performs that well.</li>
             <li>OpenRouter is great for switching models with a unified API, but it seems too easy to run an open-source model through an unreliable provider with a misconfigured or heavily quantized model. I tried to run all models through the official provider only.</li>
             <li>I was initially quite concerned with reward hacking but this did not happen. Maybe because the grading was kept somewhat opaque?</li>
