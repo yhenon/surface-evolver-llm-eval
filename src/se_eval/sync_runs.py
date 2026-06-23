@@ -61,6 +61,7 @@ def planned_dirs(args: argparse.Namespace) -> list[Path]:
             baseline=name,
             model=model.model,
             reasoning_effort=model.reasoning_effort,
+            provider=model.provider,
         )
         for name, model in configured_model_spec_map(args.config).items()
     ]

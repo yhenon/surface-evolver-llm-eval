@@ -19,6 +19,7 @@ from .config import (
     REASONING_EFFORTS,
     ConfiguredModel,
     configured_model_spec_map,
+    default_provider_routing,
     model_name_from_id,
     resolve_model_name,
 )
@@ -98,6 +99,17 @@ def reasoning_body(reasoning_effort: str | None) -> dict[str, Any]:
             "exclude": True,
         },
     }
+
+
+def extra_request_body(
+    *,
+    reasoning_effort: str | None,
+    provider: dict[str, Any] | None,
+) -> dict[str, Any]:
+    body = reasoning_body(reasoning_effort)
+    if provider:
+        body["provider"] = json.loads(json.dumps(provider))
+    return body
 
 
 def response_usage_dict(response: Any) -> dict[str, Any] | None:
@@ -282,6 +294,7 @@ def create_chat_completion(
     model: str,
     messages: list[dict[str, Any]],
     reasoning_effort: str | None,
+    provider: dict[str, Any] | None,
 ) -> Any:
     for attempt in range(1, CHAT_COMPLETION_ATTEMPTS + 1):
         raw_response = client.chat.completions.with_raw_response.create(
@@ -290,7 +303,7 @@ def create_chat_completion(
             tools=OPENAI_TOOLS,
             tool_choice="auto",
             parallel_tool_calls=False,
-            extra_body=reasoning_body(reasoning_effort),
+            extra_body=extra_request_body(reasoning_effort=reasoning_effort, provider=provider),
         )
         try:
             return raw_response.parse()
@@ -340,6 +353,7 @@ def generate_submission(
     model: str,
     max_rounds: int = 8,
     reasoning_effort: str | None = None,
+    provider: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     client = make_openrouter_client()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -389,6 +403,7 @@ def generate_submission(
                 model=model,
                 messages=messages,
                 reasoning_effort=reasoning_effort,
+                provider=provider,
             )
         except CompletionResponseError as exc:
             generation_error = str(exc)
@@ -468,6 +483,7 @@ def generate_submission(
         "task_id": task.id,
         "model": model,
         "reasoning_effort": reasoning_effort,
+        "provider": provider,
         "out_dir": str(out_dir),
         "rounds_used": rounds_used,
         "max_rounds": max_rounds,
@@ -496,6 +512,7 @@ def generate_submission(
                 context={
                     "task_id": task.id,
                     "model": model,
+                    "provider": provider,
                     "out_dir": str(out_dir),
                     "rounds_used": rounds_used,
                     "max_rounds": max_rounds,
@@ -532,6 +549,7 @@ def run_pipeline(
     model: str,
     max_rounds: int = 8,
     reasoning_effort: str | None = None,
+    provider: dict[str, Any] | None = None,
     write_visual: bool = False,
 ) -> dict[str, Any]:
     try:
@@ -541,6 +559,7 @@ def run_pipeline(
             model=model,
             max_rounds=max_rounds,
             reasoning_effort=reasoning_effort,
+            provider=provider,
         )
     except Exception as exc:
         write_run_error(
@@ -551,6 +570,7 @@ def run_pipeline(
             context={
                 "task_id": task.id,
                 "model": model,
+                "provider": provider,
                 "out_dir": str(out_dir),
                 "max_rounds": max_rounds,
                 "reasoning_effort": reasoning_effort,
@@ -581,6 +601,7 @@ def run_pipeline(
                 context={
                     "task_id": task.id,
                     "model": model,
+                    "provider": provider,
                     "out_dir": str(out_dir),
                     "reasoning_effort": reasoning_effort,
                 },
@@ -617,6 +638,7 @@ def print_baselines() -> None:
         name: {
             "model": spec.model,
             "reasoning_effort": spec.reasoning_effort,
+            "provider": spec.provider,
         }
         for name, spec in BASELINE_MODELS.items()
     }
@@ -728,23 +750,36 @@ def main() -> None:
 
     selected_models = (
         [
-            (name, spec.model, resolve_reasoning_effort(cli_effort=args.reasoning_effort, model_spec=spec))
+            (
+                name,
+                spec.model,
+                resolve_reasoning_effort(cli_effort=args.reasoning_effort, model_spec=spec),
+                spec.provider,
+            )
             for name, spec in BASELINE_MODELS.items()
         ]
         if args.all_baselines
-        else [(model_name_from_id(args.model), args.model, args.reasoning_effort)]
+        else [
+            (
+                model_name_from_id(args.model),
+                args.model,
+                args.reasoning_effort,
+                default_provider_routing(args.model),
+            )
+        ]
         if args.model
         else [
             (
                 args.baseline,
                 resolve_model(None, args.baseline),
                 resolve_reasoning_effort(cli_effort=args.reasoning_effort, model_spec=BASELINE_MODELS[args.baseline]),
+                BASELINE_MODELS[args.baseline].provider,
             )
         ]
     )
 
     results: list[dict[str, Any]] = []
-    for model_label, model, reasoning_effort in selected_models:
+    for model_label, model, reasoning_effort, provider in selected_models:
         out_dir = output_dir(
             args=args,
             task=task,
@@ -759,6 +794,7 @@ def main() -> None:
                 model=model,
                 max_rounds=args.max_rounds,
                 reasoning_effort=reasoning_effort,
+                provider=provider,
             )
         else:
             result = run_pipeline(
@@ -767,6 +803,7 @@ def main() -> None:
                 model=model,
                 max_rounds=args.max_rounds,
                 reasoning_effort=reasoning_effort,
+                provider=provider,
                 write_visual=args.visual,
             )
             result = {"model": model, "out_dir": str(out_dir), **result}

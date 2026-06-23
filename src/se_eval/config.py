@@ -25,6 +25,17 @@ DEFAULT_MODELS = (
     ("minimax-m3", "minimax/minimax-m3"),
 )
 
+DEFAULT_PROVIDER_ROUTING = {
+    "moonshotai/kimi-k2.7-code": {
+        "order": ["moonshotai"],
+        "allow_fallbacks": False,
+    },
+    "minimax/minimax-m3": {
+        "order": ["minimax"],
+        "allow_fallbacks": False,
+    },
+}
+
 DEPRECATED_MODEL_ALIASES = {
     "deepseek": "deepseek-v4-pro",
     "gemini-flash": "gemini-3.5-flash",
@@ -46,14 +57,25 @@ class ConfiguredModel:
     name: str
     model: str
     reasoning_effort: str | None = None
+    provider: dict[str, Any] | None = None
 
 
 def model_name_from_id(model: str) -> str:
     return model.rsplit("/", 1)[-1].replace(":", "_")
 
 
+def default_provider_routing(model: str) -> dict[str, Any] | None:
+    provider = DEFAULT_PROVIDER_ROUTING.get(model)
+    if provider is None:
+        return None
+    return json.loads(json.dumps(provider))
+
+
 def _default_models() -> list[ConfiguredModel]:
-    return [ConfiguredModel(name=name, model=model) for name, model in DEFAULT_MODELS]
+    return [
+        ConfiguredModel(name=name, model=model, provider=default_provider_routing(model))
+        for name, model in DEFAULT_MODELS
+    ]
 
 
 def load_configured_models(config_path: Path = DEFAULT_CONFIG_PATH) -> list[ConfiguredModel]:
@@ -73,10 +95,18 @@ def load_configured_models(config_path: Path = DEFAULT_CONFIG_PATH) -> list[Conf
         name = _required_str(raw, "name", config_path, index)
         model = _required_str(raw, "model", config_path, index)
         reasoning_effort = _optional_reasoning_effort(raw, config_path, index)
+        provider = _optional_provider_routing(raw, model, config_path, index)
         if name in seen:
             raise ValueError(f"{config_path}: duplicate model name {name!r}.")
         seen.add(name)
-        models.append(ConfiguredModel(name=name, model=model, reasoning_effort=reasoning_effort))
+        models.append(
+            ConfiguredModel(
+                name=name,
+                model=model,
+                reasoning_effort=reasoning_effort,
+                provider=provider,
+            )
+        )
 
     if not models:
         raise ValueError(f"{config_path} must list at least one model.")
@@ -108,6 +138,39 @@ def _optional_reasoning_effort(raw: dict[str, Any], config_path: Path, index: in
             f"{', '.join(REASONING_EFFORTS)}."
         )
     return effort
+
+
+def _optional_provider_routing(
+    raw: dict[str, Any],
+    model: str,
+    config_path: Path,
+    index: int,
+) -> dict[str, Any] | None:
+    if "provider" not in raw:
+        return default_provider_routing(model)
+
+    value = raw.get("provider")
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError(f"{config_path}: models[{index}].provider must be an object or null.")
+
+    order = value.get("order")
+    if order is not None and (
+        not isinstance(order, list)
+        or not order
+        or any(not isinstance(item, str) or not item.strip() for item in order)
+    ):
+        raise ValueError(f"{config_path}: models[{index}].provider.order must be a non-empty string list.")
+
+    allow_fallbacks = value.get("allow_fallbacks")
+    if allow_fallbacks is not None and not isinstance(allow_fallbacks, bool):
+        raise ValueError(f"{config_path}: models[{index}].provider.allow_fallbacks must be a boolean.")
+
+    try:
+        return json.loads(json.dumps(value))
+    except TypeError as exc:
+        raise ValueError(f"{config_path}: models[{index}].provider must be JSON-serializable.") from exc
 
 
 def configured_model_map(config_path: Path = DEFAULT_CONFIG_PATH) -> dict[str, str]:

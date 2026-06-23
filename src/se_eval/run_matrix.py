@@ -12,6 +12,7 @@ from .config import (
     DEFAULT_CONFIG_PATH,
     ConfiguredModel,
     configured_model_spec_map,
+    default_provider_routing,
     model_name_from_id,
     resolve_model_name,
 )
@@ -43,6 +44,7 @@ class ModelSpec:
     model: str
     baseline: str | None = None
     reasoning_effort: str | None = None
+    provider: dict[str, Any] | None = None
 
 
 NO_REASONING_EFFORT_ALIASES = {"na", "n/a", "default", "unset"}
@@ -113,6 +115,7 @@ def selected_model_specs(
                 baseline=baseline_name,
                 model=configured.model,
                 reasoning_effort=configured.reasoning_effort,
+                provider=configured.provider,
             )
         )
 
@@ -121,6 +124,7 @@ def selected_model_specs(
             ModelSpec(
                 label=model_name_from_id(model),
                 model=model,
+                provider=default_provider_routing(model),
             )
         )
 
@@ -224,6 +228,7 @@ def summarize_outcome(
         "baseline": model_spec.baseline,
         "model": model_spec.model,
         "reasoning_effort": reasoning_effort,
+        "provider": model_spec.provider,
         "out_dir": str(out_dir),
         "submitted": generation.get("submitted", False),
         "rounds_used": generation.get("rounds_used"),
@@ -418,6 +423,7 @@ def main() -> None:
             "baseline": model.baseline,
             "model": model.model,
             "reasoning_effort": reasoning_effort,
+            "provider": model.provider,
             "out_dir": str(run_dir(matrix_dir, task, model, reasoning_effort)),
         }
         for task in tasks
@@ -478,6 +484,7 @@ def main() -> None:
                 model=model_spec.model,
                 max_rounds=args.max_rounds,
                 reasoning_effort=reasoning_effort,
+                provider=model_spec.provider,
                 write_visual=args.visual,
             )
         except Exception as exc:
@@ -499,6 +506,7 @@ def main() -> None:
                         "baseline": model_spec.baseline,
                         "model": model_spec.model,
                         "reasoning_effort": reasoning_effort,
+                        "provider": model_spec.provider,
                         "out_dir": str(out_dir),
                     },
                 )

@@ -6,14 +6,25 @@
   <title>Surface Evolver LLM Eval</title>
   <meta name="description" content="A benchmark for evaluating whether LLMs can write valid Surface Evolver datafiles to model liquid surfaces shaped by various forces and constraints.">
   <link rel="stylesheet" href="assets/site.css">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']]
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <header class="site-header">
     <nav class="nav" aria-label="Primary navigation">
       <a class="brand" href="./">Surface Evolver LLM Eval</a>
       <div class="nav-links">
+        <a href="#intro">Intro</a>
+        <a href="#measures">Measures</a>
         <a href="#results">Results</a>
-        <a href="#method">Notes</a>
+        <a href="#benchmark">Why</a>
         <a href="https://github.com/yhenon/surface-evolver-llm-eval">GitHub</a>
       </div>
     </nav>
@@ -22,35 +33,79 @@
   <main>
     <section class="hero" aria-labelledby="page-title">
       <div class="hero-copy">
-        <h1 id="page-title">title?</h1>
+        <h1 id="page-title">Surface Evolver Bench</h1>
         <p class="lede">
-          subheader.
+          How good are Large Language Models (LLMs) at writing complex physical simulations in a custom data format?
         </p>
         <div class="actions">
-          <a class="button" href="#results">View results</a>
-          <a class="button secondary" href="https://github.com/yhenon/surface-evolver-llm-eval">Read the repo</a>
+          <a class="button" href="#results">Results</a>
+          <a class="button secondary" href="https://github.com/yhenon/surface-evolver-llm-eval">Github</a>
         </div>
       </div>
-      <div class="hero-visual" aria-label="Surface Evolver example outputs">
+      <figure class="hero-visual" aria-label="Surface Evolver example outputs">
         <img src="assets/illustrations/1.png" alt="Rendered Surface Evolver geometry example">
         <img src="assets/illustrations/2.png" alt="Rendered minimal surface geometry example">
         <img src="assets/illustrations/3.png" alt="Rendered Surface Evolver bridge example">
         <img src="assets/illustrations/4.png" alt="Rendered Surface Evolver capillary surface example">
+        <figcaption>Example rendered surfaces showing simulated liquid (green) shaped by solid constraints (orange).</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" id="intro" aria-labelledby="intro-title">
+      <div class="section-inner">
+        <h2 id="intro-title">Introduction</h2>
+        <div class="narrative-block">
+          <p>
+            <a href="https://kenbrakke.com/evolver/evolver.html">Surface Evolver</a> is a tool released in 1992 (!) for modeling liquid surfaces. It is useful for tasks such as studying solder deposition on chips, modeling liquid fuel tanks or designing lab-on-a-chip networks.
+          </p>
+          <p>
+            To simulate a liquid, we must define a geometry using vertices, edges, faces and bodies using the custom datafile format. But it is not just a geometry or meshing task, as we must also encode the physics in Evolver's custom datafile language. Most importantly, for wetted liquid-solid boundaries, we do not represent the surface explicitly. Rather we leave a 'hole' in the mesh, and use Green's theorem to turn an area term into a boundary integral:
+            \[
+              A = \frac{1}{2}\oint_{\partial A} \left(x\,dy - y\,dx\right).
+            \]
+            This means that for a liquid-solid surface we don't have to approximate it as a mesh, and deal with the complications of mesh refinement, equiangulation, and stretching or disappearing triangles. But we pay the cost in having to write a much more complex datafile, defining physics constraints due to the boundary integral.
+          </p>
+          <figure class="narrative-figure compact">
+            <img src="assets/illustrations/5.png" alt="Rendered Surface Evolver mound example">
+          </figure>
+          <p>
+            Above: an example of a typical droplet of fluid on a flat surface, with the unmeshed 'hole' at the bottom of the droplet replace by a boundary integral.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="measures" aria-labelledby="measures-title">
+      <div class="section-inner">
+        <h2 id="measures-title">What this eval measures</h2>
+        <div class="narrative-block">
+          <p>
+            This eval tests LLMs capacity to:
+          <ul>
+            <li>Define complex 3D structures using vertices, edges and facets with minimal visual feedback.</li>
+            <li>Apply physics based constraints, like hydrophobic or hydrophilic surfaces, gravity terms, external forces and area minimization terms.</li>
+            <li>Correctly apply Green's theorem to transform area minimization constraints into boundary integrals.</li>
+            <li>Generalize from a few examples as there isn't a significant amount of web data.</li>
+          </ul>
+          </p>
+
+          <p>
+            Model grading:
+          <ul>
+            <li>No LLM-as-a-judge.</li>
+            <li>For each task, I carefully wrote a ground truth solution and simulated the converged liquid shape. For grading, the shape volume, area and energy is compared between the simulated solution and ground truth solution.</li>
+            <li>There are partial points for submitting a valid file, having a correct initial geometry and writing constraints correctly.</li>
+
+          </ul>
+          </p>
+
+        </div>
       </div>
     </section>
 
     <section class="section" id="results" aria-labelledby="results-title">
       <div class="section-inner">
         <h2 id="results-title">Results</h2>
-        <div class="narrative-block">
-          <h3>What this eval measures</h3>
-          <p>
-            Surface Evolver is a tool I used in my grad school days for simulating behavior of liquid-air interfaces. Back then, it was rather tricky getting simulations up and running, taking days or even weeks for the most complex cases. So I naturally wanted to understand how LLMs would fare.
-          </p>
-          <p>
-            paragraph 2.
-          </p>
-        </div>
         <div class="chart-stack">
           <article class="chart-block">
             <img src="assets/charts/by_model.svg" alt="Bar chart of Surface Evolver eval results by model">
@@ -74,10 +129,10 @@
       </div>
     </section>
 
-    <section class="section" id="method" aria-labelledby="method-title">
+    <section class="section" id="benchmark" aria-labelledby="benchmark-title">
       <div class="section-inner">
         <div class="narrative-block">
-          <h2 id="method-title">Why another LLM benchmark?</h2>
+          <h2 id="benchmark-title">Why another LLM benchmark?</h2>
           <p>
             There are already many benchmarks out there, which naturally poses the question of why create another yet another one.
           </p>
@@ -90,6 +145,12 @@
             <li>LLMs are the real deal. There is a lot of debate over whether they are true intelligence, but clearly they can master a task that is challenging for many grad students from limited training data.</li>
             <li>You do not have frontier intelligence at home (unless you live in a data center). This is unfortunate, but no small model performs well</li>
           </ul>
+          <p>
+            Also check out the author's <a href="https://kenbrakke.com/evolver/evolver.html">website</a> if you haven't. It is a delightful throwback to the era of 90s web design by academics:
+          </p>
+          <figure class="narrative-figure">
+            <img src="assets/illustrations/6.png" alt="Surface Evolver website screenshot">
+          </figure>
         </div>
       </div>
     </section>

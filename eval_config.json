@@ -30,7 +30,13 @@
     },
     {
       "name": "kimi-k2.7-code",
-      "model": "moonshotai/kimi-k2.7-code"
+      "model": "moonshotai/kimi-k2.7-code",
+      "provider": {
+        "order": [
+          "moonshotai"
+        ],
+        "allow_fallbacks": false
+      }
     },
     {
       "name": "gemma-4-31b-it",
@@ -39,7 +45,13 @@
     },
     {
       "name": "minimax-m3",
-      "model": "minimax/minimax-m3"
+      "model": "minimax/minimax-m3",
+      "provider": {
+        "order": [
+          "minimax"
+        ],
+        "allow_fallbacks": false
+      }
     },
     {
       "name": "gpt-5.5-high",
