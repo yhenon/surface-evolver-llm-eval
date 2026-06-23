@@ -87,18 +87,13 @@
             <li>Correctly apply Green's theorem to transform area minimization constraints into boundary integrals.</li>
             <li>Generalize from a few examples as there isn't a significant amount of web data.</li>
           </ul>
-          </p>
-
           <p>
             Model grading:
           <ul>
             <li>No LLM-as-a-judge.</li>
             <li>For each task, I carefully wrote a ground truth solution and simulated the converged liquid shape. For grading, the shape volume, area and energy is compared between the simulated solution and ground truth solution.</li>
             <li>There are partial points for submitting a valid file, having a correct initial geometry and writing constraints correctly.</li>
-
           </ul>
-          </p>
-
         </div>
       </div>
     </section>
@@ -137,13 +132,15 @@
             There are already many benchmarks out there, which naturally poses the question of why create another yet another one.
           </p>
           <p>
-            For one, I wanted to. I thought it would be a good way to improve my understanding of the current capabilities of LLMs, which it absolutely did. So what did I learn?
+            For one, I wanted to. I thought it would be a good way to improve my understanding of the current capabilities of LLMs, which it absolutely did. I also thought it did genuinely make a good benchmark, with some nice aspects like limited training data, and it is truly agentic with the iterative submissions of the datafile. So what did I learn?
           </p>
           <ul>
-            <li>You often hear "the harness is everything," and this is indeed true. The available tool calls, docs, and feedback loop make a huge difference for performance. My first versions had performance close to zero when docs were not accessible, the interaction with Surface Evolver was limited, etc</li>
+            <li>You often hear "the harness is everything," and this is indeed true. The available tool calls, docs, and feedback loop make a huge difference for performance. My first versions had performance close to zero when docs were not accessible, the interaction with Surface Evolver was limited, etc.</li>
             <li>LLMs have a surprisingly strong understand of 3D geometry. I usually need to make a large sketch of the surface I am simulating, but they can seemingly deal with 3D structures with 20-30 vertices, tens of edges and faces in pure text.</li>
             <li>LLMs are the real deal. There is a lot of debate over whether they are true intelligence, but clearly they can master a task that is challenging for many grad students from limited training data.</li>
-            <li>You do not have frontier intelligence at home (unless you live in a data center). This is unfortunate, but no small model performs well</li>
+            <li>You do not have frontier intelligence at home (unless you live in a data center). This is unfortunate, but no small model performs that well.</li>
+            <li>Openrouter is great for switching models with a unified API, but it seems too easy to run an open-source model with an unreliable provider having a misconfigured or quantized model. I tried to run all models through the official provider only.</li>
+            <li>I was initially quite concerned with reward hacking but this did not happen. Maybe because the grading was kept somewhat opaque?</li>
           </ul>
           <p>
             Also check out the author's <a href="https://kenbrakke.com/evolver/evolver.html">website</a> if you haven't. It is a delightful throwback to the era of 90s web design by academics:
