@@ -1,4 +1,4 @@
-# Surface Evolver LLM Eval
+# Surface Evolver Bench
 
 This repository benchmarks whether language models can write valid
 [Surface Evolver](https://kenbrakke.com/evolver/evolver.html) `.fe` datafiles

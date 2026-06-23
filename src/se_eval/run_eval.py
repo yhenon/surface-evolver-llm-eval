@@ -84,7 +84,7 @@ def make_openrouter_client() -> OpenAI:
         base_url=os.environ.get("OPENROUTER_BASE_URL", OPENROUTER_BASE_URL),
         default_headers={
             "HTTP-Referer": os.environ.get("OPENROUTER_HTTP_REFERER", "https://github.com/local/se-llm-eval"),
-            "X-Title": os.environ.get("OPENROUTER_APP_TITLE", "Surface Evolver LLM Eval"),
+            "X-Title": os.environ.get("OPENROUTER_APP_TITLE", "Surface Evolver Bench"),
         },
     )
 
