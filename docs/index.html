@@ -59,18 +59,19 @@
             <a href="https://kenbrakke.com/evolver/evolver.html">Surface Evolver</a> is a tool released in 1992 (!) for modeling liquid surfaces. It is useful for tasks such as studying solder deposition on chips, modeling liquid fuel tanks or designing lab-on-a-chip networks.
           </p>
           <p>
-            To simulate a liquid, we must define a geometry using vertices, edges, faces and bodies using the custom datafile format. But it is not just a geometry or meshing task, as we must also encode the physics in Evolver's custom datafile language. Most importantly, for wetted liquid-solid boundaries, we do not represent the surface explicitly. Rather we leave a 'hole' in the mesh, and use Green's theorem to turn an area term into a boundary integral:
-            \[
+            Simulating a liquid means defining a geometry (vertices, edges, faces and bodies) in Evolver's custom datafile language, and encoding the physics too. The key trick: for wetted liquid-solid boundaries we don't mesh the surface at all. We leave a 'hole' in the mesh and use Green's theorem to turn its area into a boundary integral:
+
+                                  \[
               A = \frac{1}{2}\oint_{\partial A} \left(x\,dy - y\,dx\right).
             \]
-            This means that for a liquid-solid surface we don't have to approximate it as a mesh, and deal with the complications of mesh refinement, equiangulation, and stretching or disappearing triangles. But we pay the cost in having to write a much more complex datafile, defining physics constraints due to the boundary integral.
+
+            This avoids mesh refinement, equiangulation, and stretching or disappearing triangles at the cost of a more complex datafile and hand-written constraints.
+
           </p>
           <figure class="narrative-figure compact">
             <img src="assets/illustrations/5.png" alt="Rendered Surface Evolver mound example">
+            <figcaption>An example of a typical droplet of fluid on a flat surface, with the unmeshed 'hole' at the bottom of the droplet replaced by a boundary integral.</figcaption>
           </figure>
-          <p>
-            Above: an example of a typical droplet of fluid on a flat surface, with the unmeshed 'hole' at the bottom of the droplet replace by a boundary integral.
-          </p>
         </div>
       </div>
     </section>

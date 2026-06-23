@@ -239,6 +239,14 @@ h2 {
   width: 100%;
 }
 
+.narrative-figure figcaption {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 8px;
+  text-align: center;
+}
+
 .narrative-figure.compact img {
   margin: 0 auto;
   max-width: min(100%, 210px);
