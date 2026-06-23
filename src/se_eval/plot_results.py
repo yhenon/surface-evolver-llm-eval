@@ -918,8 +918,6 @@ def write_performance_scatter(
             )
             for x, y in coords:
                 body.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="4" fill="#111827"/>')
-            label_x, label_y = coords[-1]
-            body.append(svg_text("frontier", label_x + 10, label_y - 10, size=11, weight="600", fill="#111827"))
 
     for agg, value in sorted(points, key=lambda item: item[1] or 0.0):
         if value is None:
@@ -1058,7 +1056,8 @@ def write_html_report(
     h2 {{ font-size: 18px; margin: 28px 0 10px; }}
     p {{ color: #475467; }}
     a {{ color: #275cad; }}
-    img {{ display: block; max-width: 100%; border: 1px solid #e3e7eb; margin: 10px 0 22px; }}
+    img {{ display: block; max-width: 100%; border: 1px solid #e3e7eb; margin: 10px 0 8px; }}
+    .caption {{ margin: 0 0 22px; font-size: 13px; }}
     .links a {{ margin-right: 14px; }}
   </style>
 </head>
@@ -1072,16 +1071,22 @@ def write_html_report(
   </p>
   <h2>By Model</h2>
   <img src="{rel(model_svg)}" alt="Results by model">
+  <p class="caption">Overall score, pass count, and recorded token/cost totals for each model.</p>
   <h2>Tool Calls And Turns</h2>
   <img src="{rel(interaction_svg)}" alt="Stacked bar chart of average tool calls and assistant turns by model">
+  <p class="caption">Average assistant turns and tool calls used by each model before final submission.</p>
   <h2>Performance Vs Tokens</h2>
   <img src="{rel(score_tokens_svg)}" alt="Mean score versus total tokens">
+  <p class="caption">Mean score versus total token usage across all runs for each model.</p>
   <h2>Performance Vs Cost</h2>
   <img src="{rel(score_cost_svg)}" alt="Mean score versus recorded cost">
+  <p class="caption">Mean score versus total recorded API cost; the stepped line marks the best score available under each budget.</p>
   <h2>By Task</h2>
   <img src="{rel(task_svg)}" alt="Results by task">
+  <p class="caption">Average score and pass rate grouped by benchmark task.</p>
   <h2>Task By Model</h2>
   <img src="{rel(heatmap_svg)}" alt="Task/model heatmap">
+  <p class="caption">Task-level score matrix for comparing model strengths and weak spots.</p>
 </body>
 </html>
 """

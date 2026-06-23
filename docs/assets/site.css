@@ -330,6 +330,13 @@ h2 {
   width: 100%;
 }
 
+.chart-caption {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 12px 0 0;
+}
+
 .split {
   display: grid;
   gap: 28px;
