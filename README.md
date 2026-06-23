@@ -107,7 +107,8 @@ docker run --rm \
   -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
   -v "$PWD/runs:/app/runs" \
   se-llm-eval python -m se_eval.run_eval \
-    --task cube \
+    --task-visibility public \
+    --task two_bubbles_2d \
     --all-baselines
 ```
 
@@ -138,12 +139,11 @@ Run a smoke check that does not call a model:
 PYTHONPATH=src uv run python -m se_eval.run_eval --list-baselines
 ```
 
-Run a full eval locally with the default private task set:
+Run a full eval locally with the default private task directory:
 
 ```bash
 OPENROUTER_API_KEY=... \
 PYTHONPATH=src uv run python -m se_eval.run_eval \
-  --task cube \
   --baseline gpt-5.5
 ```
 
@@ -171,7 +171,8 @@ Run one named baseline:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
-  --task cube \
+  --task-visibility public \
+  --task two_bubbles_2d \
   --baseline deepseek-v4-pro
 ```
 
@@ -179,7 +180,8 @@ Override the model id directly:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
-  --task cube \
+  --task-visibility public \
+  --task two_bubbles_2d \
   --model openai/gpt-5.5
 ```
 
@@ -187,7 +189,8 @@ For models that support reasoning controls through OpenRouter:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
-  --task cube \
+  --task-visibility public \
+  --task two_bubbles_2d \
   --baseline gpt-5.5 \
   --reasoning-effort high
 ```
@@ -228,7 +231,8 @@ Generate only:
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --stage generate \
-  --task cube \
+  --task-visibility public \
+  --task two_bubbles_2d \
   --baseline deepseek-v4-pro
 ```
 
@@ -237,8 +241,9 @@ Re-grade an existing run without calling a model:
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --stage grade \
-  --task cube \
-  runs/deepseek-v4-pro/private_cube
+  --task-visibility private \
+  --task <task_id> \
+  runs/deepseek-v4-pro/private_<task_id>
 ```
 
 Grade a direct `.fe` file and print the result without writing JSON:
@@ -246,7 +251,8 @@ Grade a direct `.fe` file and print the result without writing JSON:
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --stage grade \
-  --task cube \
+  --task-visibility public \
+  --task two_bubbles_2d \
   --no-write \
   path/to/submission.fe
 ```
@@ -256,7 +262,8 @@ Write Evolver-derived visual artifacts during grading:
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
   --stage grade \
-  --task cube \
+  --task-visibility public \
+  --task two_bubbles_2d \
   --visual \
   path/to/submission.fe
 ```
@@ -449,13 +456,12 @@ A task defines:
 
 Example task families currently include:
 
-- `cube`: build a unit cube with one prescribed-volume body.
 - `two_bubbles_2d`: build a two-bubble 2D string model with two prescribed
   enclosed areas and one shared internal edge.
-- `bridge_two_plates`: build a liquid bridge between two constrained plates
-  with contact-angle energy and content integrals.
-- `bridge_three_plates`: build a liquid bridge touching three vertical plates
-  arranged symmetrically at 120 degrees.
+- droplet tasks with contact-angle energy and content integrals.
+- bridge tasks with liquid surfaces spanning constrained solid supports.
+- groove and well tasks with liquid surfaces shaped by channel-like
+  constraints.
 
 To add a task, create `tasks_public/<task_id>.json` or
 `tasks_private/<task_id>.json`, make the public validation script useful but not

@@ -35,7 +35,6 @@ TASK_VISIBILITY_DIRS = {
 }
 DEFAULT_TASKS = {
     "public": "two_bubbles_2d",
-    "private": "cube",
 }
 BASELINE_MODELS = configured_model_spec_map()
 RESPONSE_PREVIEW_CHARS = 4000
@@ -651,8 +650,16 @@ def resolve_task_dir(task_dir: str | None, task_visibility: str) -> Path:
     return Path(TASK_VISIBILITY_DIRS[task_visibility])
 
 
-def resolve_task_id(task_id: str | None, task_visibility: str) -> str:
-    return task_id or DEFAULT_TASKS[task_visibility]
+def resolve_task_id(task_id: str | None, task_visibility: str, task_dir: Path) -> str:
+    if task_id:
+        return task_id
+    default_task = DEFAULT_TASKS.get(task_visibility)
+    if default_task:
+        return default_task
+    discovered = sorted(path.stem for path in task_dir.glob("*.json"))
+    if discovered:
+        return discovered[0]
+    raise FileNotFoundError(f"No default task found in {task_dir}. Pass --task explicitly.")
 
 
 def main() -> None:
@@ -730,10 +737,8 @@ def main() -> None:
             f"Unexpected input for --stage {args.stage}: {args.input}"
         )
 
-    task = Task.load(
-        resolve_task_id(args.task, args.task_visibility),
-        resolve_task_dir(args.task_dir, args.task_visibility),
-    )
+    task_dir = resolve_task_dir(args.task_dir, args.task_visibility)
+    task = Task.load(resolve_task_id(args.task, args.task_visibility, task_dir), task_dir)
 
     if args.stage == "grade":
         if args.input is None:
