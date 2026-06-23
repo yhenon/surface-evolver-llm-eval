@@ -95,7 +95,7 @@
           </p>
           <ul>
             <li>No LLM-as-a-judge.</li>
-            <li>For each task, I wrote a reference solution and simulated the converged liquid shape. For grading, the shape’s volume, area, and energy are compared between the simulated solution and ground truth solution.</li>
+            <li>For each task, I wrote a reference solution and simulated the converged liquid shape. For grading, the submitted shape’s volume, area, and energy are compared against the reference solution.</li>
             <li>There are partial points for submitting a valid file, having a correct initial geometry and writing constraints correctly.</li>
           </ul>
         </div>
@@ -107,28 +107,40 @@
         <h2 id="results-title">Results</h2>
         <div class="chart-stack">
           <article class="chart-block">
-            <img src="assets/charts/by_model.svg" alt="Bar chart of Surface Evolver eval results by model">
-            <p class="chart-caption">Overall score, pass count, and recorded token/cost totals for each model.</p>
+            <figure>
+              <img src="assets/charts/by_model.svg" alt="Bar chart of Surface Evolver eval results by model" loading="lazy">
+              <figcaption class="chart-caption">Overall score, pass count, and recorded token/cost totals for each model.</figcaption>
+            </figure>
           </article>
           <article class="chart-block">
-            <img src="assets/charts/score_vs_total_cost.svg" alt="Scatter plot of mean score versus recorded cost by model with a stepped efficient frontier">
-            <p class="chart-caption">Mean score versus total recorded API cost; the stepped line marks the best score available under each budget.</p>
+            <figure>
+              <img src="assets/charts/score_vs_total_cost.svg" alt="Scatter plot of mean score versus recorded cost by model with a stepped efficient frontier" loading="lazy">
+              <figcaption class="chart-caption">Mean score versus total recorded API cost; the stepped line marks the best score available under each budget.</figcaption>
+            </figure>
           </article>
           <article class="chart-block">
-            <img src="assets/charts/score_vs_total_tokens.svg" alt="Scatter plot of mean score versus total tokens by model">
-            <p class="chart-caption">Mean score versus total token usage across all runs for each model.</p>
+            <figure>
+              <img src="assets/charts/score_vs_total_tokens.svg" alt="Scatter plot of mean score versus total tokens by model" loading="lazy">
+              <figcaption class="chart-caption">Mean score versus total token usage across all runs for each model.</figcaption>
+            </figure>
           </article>
           <article class="chart-block">
-            <img src="assets/charts/by_task.svg" alt="Bar chart of Surface Evolver eval results by task">
-            <p class="chart-caption">Average score and pass rate grouped by benchmark task.</p>
+            <figure>
+              <img src="assets/charts/by_task.svg" alt="Bar chart of Surface Evolver eval results by task" loading="lazy">
+              <figcaption class="chart-caption">Average score and pass rate grouped by benchmark task.</figcaption>
+            </figure>
           </article>
           <article class="chart-block">
-            <img src="assets/charts/model_tool_usage.svg" alt="Stacked bar chart of average tool calls and assistant turns by model">
-            <p class="chart-caption">Average assistant turns and tool calls used by each model before final submission.</p>
+            <figure>
+              <img src="assets/charts/model_tool_usage.svg" alt="Stacked bar chart of average tool calls and assistant turns by model" loading="lazy">
+              <figcaption class="chart-caption">Average assistant turns and tool calls used by each model before final submission.</figcaption>
+            </figure>
           </article>
           <article class="chart-block">
-            <img src="assets/charts/task_model_heatmap.svg" alt="Heatmap of model scores for each Surface Evolver task">
-            <p class="chart-caption">Task-level score matrix for comparing model strengths and weak spots.</p>
+            <figure>
+              <img src="assets/charts/task_model_heatmap.svg" alt="Heatmap of model scores for each Surface Evolver task" loading="lazy">
+              <figcaption class="chart-caption">Task-level score matrix for comparing model strengths and weak spots.</figcaption>
+            </figure>
           </article>
         </div>
       </div>
@@ -148,12 +160,12 @@
             <li>You often hear "the harness is everything," and this is indeed true. The available tool calls, docs, and feedback loop make a huge difference for performance. My first versions had performance close to zero when docs were not accessible, the interaction with Surface Evolver was limited, etc.</li>
             <li>LLMs have a surprisingly strong understanding of 3D geometry. I usually need to make a large sketch of the surface I am simulating, but they can seemingly deal with 3D structures with 20-30 vertices, tens of edges and faces in pure text.</li>
             <li>LLMs are the real deal. There is a lot of debate over whether they are true intelligence, but clearly they can contribute significantly to a task that is challenging for many grad students from limited training data.</li>
-            <li>You do not have frontier intelligence at home (unless you live in a data center). This is unfortunate, but no small model performs that well.</li>
+            <li>You do not have frontier intelligence at home (unless you live in a data center). This is unfortunate, but in this benchmark no small model performs that well.</li>
             <li>OpenRouter is great for switching models with a unified API, but it seems too easy to run an open-source model through an unreliable provider with a misconfigured or heavily quantized model. I tried to run all models through the official provider only.</li>
             <li>I was initially quite concerned with reward hacking but this did not happen. Maybe because the grading was kept somewhat opaque?</li>
           </ul>
           <p>
-            Also check out the author's <a href="https://kenbrakke.com/evolver/evolver.html">website</a> if you haven't. It is a delightful throwback to the era of 90s web design by academics:
+            Also check out Ken Brakke’s Surface Evolver <a href="https://kenbrakke.com/evolver/evolver.html">website</a> if you haven't. It is a delightful throwback to the era of 90s web design by academics:
           </p>
           <figure class="narrative-figure">
             <img src="assets/illustrations/6.png" alt="Surface Evolver website screenshot">
