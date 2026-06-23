@@ -927,8 +927,9 @@ def write_performance_scatter(
         x = left + plot_width * (value / max_x if max_x else 0.0)
         y = top + plot_height * (1 - agg.mean_score)
         color = provider_color(agg.provider, "#475467")
-        body.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="13" fill="#ffffff" stroke="{color}" stroke-width="2"/>')
+        body.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="13" fill="#ffffff"/>')
         body.append(svg_icon(agg.provider, icons, x - 10, y - 10, 20))
+        body.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="13" fill="none" stroke="{color}" stroke-width="2"/>')
         label_anchor = "end" if x > left + plot_width - 150 else "start"
         label_x = x - 18 if label_anchor == "end" else x + 18
         body.append(svg_text(agg.key, label_x, y - 4, size=11, anchor=label_anchor, weight="600"))

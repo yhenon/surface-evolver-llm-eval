@@ -39,7 +39,7 @@
         </p>
         <div class="actions">
           <a class="button" href="#results">Results</a>
-          <a class="button secondary" href="https://github.com/yhenon/surface-evolver-llm-eval">Github</a>
+          <a class="button secondary" href="https://github.com/yhenon/surface-evolver-llm-eval">GitHub</a>
         </div>
       </div>
       <figure class="hero-visual" aria-label="Surface Evolver example outputs">
@@ -59,15 +59,14 @@
             <a href="https://kenbrakke.com/evolver/evolver.html">Surface Evolver</a> is a tool released in 1992 (!) for modeling liquid surfaces. It is useful for tasks such as studying solder deposition on chips, modeling liquid fuel tanks or designing lab-on-a-chip networks.
           </p>
           <p>
-
-            A simulation is defined in Evolver's custom datafile language: vertices, edges, faces, bodies, constraints, energies, and sometimes hand-written boundary integrals.
+            A simulation is defined using Evolver's custom datafile syntax: vertices, edges, faces, bodies, constraints, energies, and boundary integrals.
           </p>
           <p>
-            A typical example is a droplet on a solid surface. Instead of explicitly meshing the wetted liquid–solid patch, we leave a "hole" in the mesh and recover its area from a line integral around the boundary (the contact line). For a flat patch in the z = 0 plane, Green's theorem gives
+            An example is a droplet sitting on a solid surface. Instead of explicitly meshing the wetted liquid–solid patch, we leave a "hole" in the mesh and compute its area from a line integral around the boundary (the contact line). For a flat patch in the z = 0 plane, using Green's theorem gives
               \[
               A = \frac{1}{2}\oint_{\partial A} \left(x\,dy - y\,dx\right).
               \]
-            This avoids tracking and refining substrate facets as the contact line moves, but it makes the datafile much harder to write correctly: orientation, constraints, contact-angle energies, and volume terms all have to line up.
+            This avoids the complexity of dealing with stretching/disappearing faces as the contact line moves. But it makes the datafile much harder to write correctly: orientation, constraints, contact-angle energies, and volume terms all have to line up.
 
           </p>
           <figure class="narrative-figure compact">
