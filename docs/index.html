@@ -97,6 +97,7 @@
             <li>No LLM-as-a-judge.</li>
             <li>For each task, I wrote a reference solution and simulated the converged liquid shape. For grading, the submitted shape’s volume, area, and energy are compared against the reference solution.</li>
             <li>There are partial points for submitting a valid file, having a correct initial geometry and writing constraints correctly.</li>
+            <li>Concretely: Each model gets a task prompt and a small tool environment: it can read curated Surface Evolver docs, run a candidate .fe file, inspect Evolver output, repair the file, and finally submit the raw datafile. The final answer must arrive through a structured submission tool. Grading then runs static checks, hidden Evolver scripts, and metric checks against precomputed expected values.</li>
           </ul>
         </div>
       </div>
@@ -151,10 +152,10 @@
         <div class="narrative-block">
           <h2 id="benchmark-title">Why another LLM benchmark?</h2>
           <p>
-            There are already many benchmarks out there, which naturally poses the question of why create yet another one.
+            There are already many benchmarks out there, which naturally poses the question of why one would create yet another.
           </p>
           <p>
-            For one, I wanted to. I thought it would be a good way to improve my understanding of the current capabilities of LLMs, which it absolutely did. I also thought it did genuinely make a good benchmark, with some nice aspects like limited training data, and it is truly agentic with the iterative submissions of the datafile. So what did I learn?
+            For one, I wanted to. I thought it would be a good way to improve my understanding of the current capabilities of LLMs, which it absolutely did. I also think it makes a genuinely good benchmark, with some nice aspects like limited training data, and it is truly agentic with the iterative submissions of the datafile. So what did I learn?
           </p>
           <ul>
             <li>You often hear "the harness is everything," and this is indeed true. The available tool calls, docs, and feedback loop make a huge difference for performance. My first versions had performance close to zero when docs were not accessible, the interaction with Surface Evolver was limited, etc.</li>
@@ -162,7 +163,7 @@
             <li>LLMs are the real deal. There is a lot of debate over whether they are true intelligence, but clearly they can contribute significantly to a task that is challenging for many grad students from limited training data.</li>
             <li>You do not have frontier intelligence at home (unless you live in a data center). This is unfortunate, but in this benchmark no small model performs that well.</li>
             <li>OpenRouter is great for switching models with a unified API, but it seems too easy to run an open-source model through an unreliable provider with a misconfigured or heavily quantized model. I tried to run all models through the official provider only.</li>
-            <li>I was initially quite concerned with reward hacking but this did not happen. Maybe because the grading was kept somewhat opaque?</li>
+            <li>I was initially quite concerned with reward hacking, but this did not happen. Maybe because the grading was kept somewhat opaque?</li>
           </ul>
           <p>
             Also check out Ken Brakke’s Surface Evolver <a href="https://kenbrakke.com/evolver/evolver.html">website</a> if you haven't. It is a delightful throwback to the era of 90s web design by academics:
