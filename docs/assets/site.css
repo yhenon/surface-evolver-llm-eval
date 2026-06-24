@@ -482,6 +482,11 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 
+  .chart-block img[src$=".svg"] {
+    max-width: 100%;
+    width: 100%;
+  }
+
   .section {
     padding: 42px 18px;
   }
