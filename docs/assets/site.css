@@ -316,6 +316,7 @@ h2 {
   background: var(--panel);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
+  min-width: 0;
   padding: 18px;
 }
 
@@ -326,12 +327,19 @@ h2 {
 
 .chart-block figure {
   margin: 0;
+  overflow-x: auto;
+  width: 100%;
 }
 
 .chart-block img {
   display: block;
   height: auto;
   width: 100%;
+}
+
+.chart-block img[src$=".svg"] {
+  max-width: none;
+  width: auto;
 }
 
 .chart-caption {
