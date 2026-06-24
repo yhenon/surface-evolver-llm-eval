@@ -9,6 +9,7 @@ from typing import Any
 
 from .grader import grade_existing_submission
 from .models import Task
+from .outcomes import materialized_outcomes
 from .run_eval import TASK_VISIBILITY_DIRS, now_slug
 from .run_matrix import write_summary
 
@@ -244,6 +245,9 @@ def main() -> None:
             raise FileNotFoundError(f"No outcomes JSONL found at {path}")
 
         rows = load_jsonl(path)
+        rows, skipped_rows = materialized_outcomes(rows)
+        if skipped_rows:
+            print(f"Ignoring {len(skipped_rows)} empty placeholder outcome rows from {path}")
         total_rows += len(rows)
         print(f"Rescoring {len(rows)} rows from {path}")
         rescored, rescored_count = rescore_rows(

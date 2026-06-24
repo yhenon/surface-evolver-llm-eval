@@ -17,6 +17,7 @@ from .config import (
     resolve_model_name,
 )
 from .models import Task
+from .outcomes import materialized_outcomes
 from .run_eval import (
     REASONING_EFFORTS,
     RUN_ERROR_FILE,
@@ -274,6 +275,7 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def write_summary(path: Path, outcomes: list[dict[str, Any]]) -> None:
+    outcomes, _skipped = materialized_outcomes(outcomes)
     by_model: dict[str, dict[str, Any]] = {}
     by_task: dict[str, dict[str, Any]] = {}
 
@@ -438,7 +440,15 @@ def main() -> None:
     print(f"Writing outcomes to {results_file}")
     print(f"Writing summary to {summary_file}")
 
-    outcomes: list[dict[str, Any]] = load_jsonl(results_file) if args.skip_existing else []
+    outcomes: list[dict[str, Any]] = []
+    if args.skip_existing:
+        loaded_outcomes = load_jsonl(results_file)
+        outcomes, skipped_outcomes = materialized_outcomes(loaded_outcomes)
+        if skipped_outcomes:
+            print(
+                f"Ignoring {len(skipped_outcomes)} outcome rows whose out_dir exists "
+                "but has no run artifacts."
+            )
     if outcomes:
         print(f"Loaded {len(outcomes)} existing outcomes from {results_file}")
 

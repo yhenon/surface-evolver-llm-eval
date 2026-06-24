@@ -13,7 +13,13 @@
     {
       "name": "deepseek-v4-pro",
       "model": "deepseek/deepseek-v4-pro",
-      "reasoning_effort": "high"
+      "reasoning_effort": "high",
+      "provider": {
+        "order": [
+          "deepseek"
+        ],
+        "allow_fallbacks": false
+      }
     },
     {
       "name": "mistral-medium-3-5",
@@ -71,6 +77,11 @@
     {
       "name": "poolside-laguna-m.1",
       "model": "poolside/laguna-m.1"
+    },
+    {
+      "name": "z-ai/glm-5.2-high",
+      "model": "z-ai/glm-5.2",
+      "reasoning_effort": "high"
     }
   ]
 }

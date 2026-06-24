@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .models import Task
+from .outcomes import materialized_outcomes
 
 
 Outcome = dict[str, Any]
@@ -158,7 +159,10 @@ def read_outcomes(inputs: Iterable[Path]) -> list[Outcome]:
         rows = load_jsonl(path)
         for row in rows:
             row.setdefault("source_path", str(path))
-        outcomes.extend(rows)
+        kept, skipped = materialized_outcomes(rows)
+        if skipped:
+            print(f"Ignoring {len(skipped)} empty placeholder outcome rows from {path}")
+        outcomes.extend(kept)
     return outcomes
 
 
