@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="978" height="566" viewBox="0 0 978 566">
 <rect width="100%" height="100%" fill="#fbfcfd"/>
-<style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}</style>
+<style>text{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-rendering:geometricPrecision;font-kerning:normal}.numeric{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"kern" 1}</style>
 <text x="24.00" y="34.00" font-size="20" font-weight="700" text-anchor="start" fill="#18202a">Mean Score Vs Recorded Cost</text>
 <text x="24.00" y="57.00" font-size="12" font-weight="400" text-anchor="start" fill="#667085">Each point is one model aggregate.</text>
 <line x1="88.00" y1="74" x2="88.00" y2="494" stroke="#e3e7eb"/>

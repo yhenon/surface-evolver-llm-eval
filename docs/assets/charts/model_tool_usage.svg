@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1041" height="824" viewBox="0 0 1041 824">
 <rect width="100%" height="100%" fill="#fbfcfd"/>
-<style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}</style>
+<style>text{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-rendering:geometricPrecision;font-kerning:normal}.numeric{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"kern" 1}</style>
 <text x="24.00" y="34.00" font-size="20" font-weight="700" text-anchor="start" fill="#18202a">Tool Calls And Turns By Model</text>
 <text x="24.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#667085">Average tool calls per run, stacked by tool. Text shows average assistant turns.</text>
 <rect x="251.00" y="72" width="11" height="11" rx="2" fill="#4f7d3f"/>

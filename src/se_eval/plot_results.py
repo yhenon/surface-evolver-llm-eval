@@ -587,10 +587,12 @@ def svg_text(
     weight: str = "400",
     fill: str = "#18202a",
     rotate: float | None = None,
+    class_name: str | None = None,
 ) -> str:
     transform = f' transform="rotate({rotate} {x:.2f} {y:.2f})"' if rotate is not None else ""
+    class_attr = f' class="{html.escape(class_name, quote=True)}"' if class_name else ""
     return (
-        f'<text x="{x:.2f}" y="{y:.2f}" font-size="{size}" font-weight="{weight}" '
+        f'<text{class_attr} x="{x:.2f}" y="{y:.2f}" font-size="{size}" font-weight="{weight}" '
         f'text-anchor="{anchor}" fill="{fill}"{transform}>{html.escape(text)}</text>'
     )
 
@@ -600,7 +602,13 @@ def svg_doc(width: int, height: int, body: list[str]) -> str:
         [
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
             '<rect width="100%" height="100%" fill="#fbfcfd"/>',
-            '<style>text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}</style>',
+            (
+                '<style>'
+                'text{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;'
+                'text-rendering:geometricPrecision;font-kerning:normal}'
+                '.numeric{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"kern" 1}'
+                '</style>'
+            ),
             *body,
             "</svg>",
             "",
@@ -737,6 +745,7 @@ def write_bar_chart(
                 size=11,
                 anchor="start",
                 fill="#344054",
+                class_name="numeric",
             )
         )
         if show_usage:
@@ -748,6 +757,7 @@ def write_bar_chart(
                     size=11,
                     anchor="start",
                     fill="#344054",
+                    class_name="numeric",
                 )
             )
             body.append(
@@ -758,6 +768,7 @@ def write_bar_chart(
                     size=10,
                     anchor="start",
                     fill="#667085",
+                    class_name="numeric",
                 )
             )
 
