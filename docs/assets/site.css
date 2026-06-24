@@ -342,6 +342,10 @@ h2 {
   width: auto;
 }
 
+.chart-block img[src$="by_model.svg"] {
+  max-width: 100%;
+}
+
 .chart-caption {
   color: var(--muted);
   font-size: 13px;
