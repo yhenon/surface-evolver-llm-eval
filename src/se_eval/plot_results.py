@@ -159,9 +159,9 @@ def read_outcomes(inputs: Iterable[Path]) -> list[Outcome]:
         rows = load_jsonl(path)
         for row in rows:
             row.setdefault("source_path", str(path))
-        kept, skipped = materialized_outcomes(rows)
+        kept, skipped = materialized_outcomes(rows, keep_missing_out_dir=False)
         if skipped:
-            print(f"Ignoring {len(skipped)} empty placeholder outcome rows from {path}")
+            print(f"Ignoring {len(skipped)} missing or empty placeholder outcome rows from {path}")
         outcomes.extend(kept)
     return outcomes
 

@@ -275,7 +275,7 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def write_summary(path: Path, outcomes: list[dict[str, Any]]) -> None:
-    outcomes, _skipped = materialized_outcomes(outcomes)
+    outcomes, _skipped = materialized_outcomes(outcomes, keep_missing_out_dir=False)
     by_model: dict[str, dict[str, Any]] = {}
     by_task: dict[str, dict[str, Any]] = {}
 
@@ -443,11 +443,11 @@ def main() -> None:
     outcomes: list[dict[str, Any]] = []
     if args.skip_existing:
         loaded_outcomes = load_jsonl(results_file)
-        outcomes, skipped_outcomes = materialized_outcomes(loaded_outcomes)
+        outcomes, skipped_outcomes = materialized_outcomes(loaded_outcomes, keep_missing_out_dir=False)
         if skipped_outcomes:
             print(
-                f"Ignoring {len(skipped_outcomes)} outcome rows whose out_dir exists "
-                "but has no run artifacts."
+                f"Ignoring {len(skipped_outcomes)} outcome rows whose out_dir is missing "
+                "or has no run artifacts."
             )
     if outcomes:
         print(f"Loaded {len(outcomes)} existing outcomes from {results_file}")

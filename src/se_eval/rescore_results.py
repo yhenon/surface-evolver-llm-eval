@@ -245,9 +245,9 @@ def main() -> None:
             raise FileNotFoundError(f"No outcomes JSONL found at {path}")
 
         rows = load_jsonl(path)
-        rows, skipped_rows = materialized_outcomes(rows)
+        rows, skipped_rows = materialized_outcomes(rows, keep_missing_out_dir=False)
         if skipped_rows:
-            print(f"Ignoring {len(skipped_rows)} empty placeholder outcome rows from {path}")
+            print(f"Ignoring {len(skipped_rows)} missing or empty placeholder outcome rows from {path}")
         total_rows += len(rows)
         print(f"Rescoring {len(rows)} rows from {path}")
         rescored, rescored_count = rescore_rows(
