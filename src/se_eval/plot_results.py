@@ -855,13 +855,16 @@ def write_performance_scatter(
     x_value: str,
     x_label: str,
     x_format: str,
+    y_value: str,
+    y_label: str,
     icons: dict[str, str],
     show_frontier: bool = False,
 ) -> None:
     points = [
-        (agg, numeric_value(getattr(agg, x_value)))
+        (agg, numeric_value(getattr(agg, x_value)), numeric_value(getattr(agg, y_value)))
         for agg in aggregates
         if numeric_value(getattr(agg, x_value)) is not None
+        and numeric_value(getattr(agg, y_value)) is not None
     ]
     left = 88
     top = 74
@@ -871,7 +874,7 @@ def write_performance_scatter(
     bottom = 72
     width = left + plot_width + right
     height = top + plot_height + bottom
-    max_x = max((value for _, value in points if value is not None), default=1.0)
+    max_x = max((x for _, x, _ in points if x is not None), default=1.0)
     x_tick_format = format_tokens if x_format == "tokens" else format_cost
     body: list[str] = [
         svg_text(title, 24, 34, size=20, weight="700"),
@@ -890,25 +893,25 @@ def write_performance_scatter(
     body.append(f'<line x1="{left}" y1="{top + plot_height}" x2="{left + plot_width}" y2="{top + plot_height}" stroke="#98a2b3"/>')
     body.append(f'<line x1="{left}" y1="{top}" x2="{left}" y2="{top + plot_height}" stroke="#98a2b3"/>')
     body.append(svg_text(x_label, left + plot_width / 2, height - 18, size=12, anchor="middle", fill="#475467"))
-    body.append(svg_text("Mean score", 22, top + plot_height / 2, size=12, anchor="middle", fill="#475467", rotate=-90))
+    body.append(svg_text(y_label, 22, top + plot_height / 2, size=12, anchor="middle", fill="#475467", rotate=-90))
 
     if show_frontier:
-        frontier: list[tuple[Aggregate, float]] = []
-        best_score = -1.0
-        for agg, value in sorted(points, key=lambda item: item[1] or 0.0):
-            if value is None:
+        frontier: list[tuple[Aggregate, float, float]] = []
+        best_y = -1.0
+        for agg, x, y in sorted(points, key=lambda item: item[1] or 0.0):
+            if x is None or y is None:
                 continue
-            if agg.mean_score > best_score:
-                frontier.append((agg, value))
-                best_score = agg.mean_score
+            if y > best_y:
+                frontier.append((agg, x, y))
+                best_y = y
 
         if len(frontier) >= 2:
             coords = [
                 (
-                    left + plot_width * (value / max_x if max_x else 0.0),
-                    top + plot_height * (1 - agg.mean_score),
+                    left + plot_width * (x / max_x if max_x else 0.0),
+                    top + plot_height * (1 - y),
                 )
-                for agg, value in frontier
+                for _, x, y in frontier
             ]
             step_coords = [coords[0]]
             for x, y in coords[1:]:
@@ -922,11 +925,11 @@ def write_performance_scatter(
             for x, y in coords:
                 body.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="4" fill="#111827"/>')
 
-    for agg, value in sorted(points, key=lambda item: item[1] or 0.0):
-        if value is None:
+    for agg, x_value_raw, y_value_raw in sorted(points, key=lambda item: item[1] or 0.0):
+        if x_value_raw is None or y_value_raw is None:
             continue
-        x = left + plot_width * (value / max_x if max_x else 0.0)
-        y = top + plot_height * (1 - agg.mean_score)
+        x = left + plot_width * (x_value_raw / max_x if max_x else 0.0)
+        y = top + plot_height * (1 - y_value_raw)
         color = provider_color(agg.provider, "#475467")
         body.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="13" fill="#ffffff"/>')
         body.append(svg_icon(agg.provider, icons, x - 10, y - 10, 20))
@@ -1043,6 +1046,8 @@ def write_html_report(
     heatmap_svg: Path,
     score_tokens_svg: Path,
     score_cost_svg: Path,
+    pass_tokens_svg: Path,
+    pass_cost_svg: Path,
     aggregates_path: Path,
     csv_path: Path,
     jsonl_path: Path,
@@ -1062,7 +1067,22 @@ def write_html_report(
     img {{ display: block; max-width: 100%; border: 1px solid #e3e7eb; margin: 10px 0 8px; }}
     .caption {{ margin: 0 0 22px; font-size: 13px; }}
     .links a {{ margin-right: 14px; }}
+    .chart-picker {{ align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }}
+    .chart-picker label {{ color: #475467; font-size: 13px; font-weight: 650; }}
+    .chart-picker select {{ border: 1px solid #d0d5dd; border-radius: 4px; color: #18202a; font: inherit; padding: 6px 28px 6px 8px; }}
   </style>
+  <script>
+    function updatePerformanceChart() {{
+      const select = document.querySelector('[data-performance-select]');
+      const image = document.querySelector('[data-performance-image]');
+      const caption = document.querySelector('[data-performance-caption]');
+      const option = select.options[select.selectedIndex];
+      image.src = option.dataset.src;
+      image.alt = option.dataset.alt;
+      caption.textContent = option.dataset.caption;
+    }}
+    window.addEventListener('DOMContentLoaded', updatePerformanceChart);
+  </script>
 </head>
 <body>
   <h1>Surface Evolver Eval Results</h1>
@@ -1078,12 +1098,18 @@ def write_html_report(
   <h2>Tool Calls And Turns</h2>
   <img src="{rel(interaction_svg)}" alt="Stacked bar chart of average tool calls and assistant turns by model">
   <p class="caption">Average assistant turns and tool calls used by each model before final submission.</p>
-  <h2>Performance Vs Tokens</h2>
-  <img src="{rel(score_tokens_svg)}" alt="Mean score versus total tokens">
-  <p class="caption">Mean score versus total token usage across all runs for each model.</p>
-  <h2>Performance Vs Cost</h2>
-  <img src="{rel(score_cost_svg)}" alt="Mean score versus recorded cost">
-  <p class="caption">Mean score versus total recorded API cost; the stepped line marks the best score available under each budget.</p>
+  <h2>Performance Tradeoff</h2>
+  <div class="chart-picker">
+    <label for="performance-chart">Chart</label>
+    <select id="performance-chart" data-performance-select onchange="updatePerformanceChart()">
+      <option data-src="{rel(score_cost_svg)}" data-alt="Mean score versus recorded cost" data-caption="Mean score versus total recorded API cost; the stepped line marks the best score available under each budget.">Score vs cost</option>
+      <option data-src="{rel(score_tokens_svg)}" data-alt="Mean score versus total tokens" data-caption="Mean score versus total token usage across all runs for each model.">Score vs tokens</option>
+      <option data-src="{rel(pass_cost_svg)}" data-alt="Pass rate versus recorded cost" data-caption="Pass rate versus total recorded API cost; the stepped line marks the best pass rate available under each budget.">Pass rate vs cost</option>
+      <option data-src="{rel(pass_tokens_svg)}" data-alt="Pass rate versus total tokens" data-caption="Pass rate versus total token usage across all runs for each model.">Pass rate vs tokens</option>
+    </select>
+  </div>
+  <img data-performance-image src="{rel(score_cost_svg)}" alt="Mean score versus recorded cost">
+  <p class="caption" data-performance-caption>Mean score versus total recorded API cost; the stepped line marks the best score available under each budget.</p>
   <h2>By Task</h2>
   <img src="{rel(task_svg)}" alt="Results by task">
   <p class="caption">Average score and pass rate grouped by benchmark task.</p>
@@ -1167,6 +1193,8 @@ def main() -> None:
     heatmap_svg = output_dir / "task_model_heatmap.svg"
     score_tokens_svg = output_dir / "score_vs_total_tokens.svg"
     score_cost_svg = output_dir / "score_vs_total_cost.svg"
+    pass_tokens_svg = output_dir / "pass_rate_vs_total_tokens.svg"
+    pass_cost_svg = output_dir / "pass_rate_vs_total_cost.svg"
     report_html = output_dir / "index.html"
 
     write_jsonl(merged_jsonl, outcomes)
@@ -1194,6 +1222,8 @@ def main() -> None:
         x_value="total_tokens",
         x_label="Total tokens across all runs",
         x_format="tokens",
+        y_value="mean_score",
+        y_label="Mean score",
         icons=icons,
     )
     write_performance_scatter(
@@ -1203,6 +1233,31 @@ def main() -> None:
         x_value="total_cost_usd",
         x_label="Recorded cost across all runs",
         x_format="cost",
+        y_value="mean_score",
+        y_label="Mean score",
+        icons=icons,
+        show_frontier=True,
+    )
+    write_performance_scatter(
+        pass_tokens_svg,
+        "Pass Rate Vs Total Tokens",
+        model_aggregates,
+        x_value="total_tokens",
+        x_label="Total tokens across all runs",
+        x_format="tokens",
+        y_value="pass_rate",
+        y_label="Pass rate",
+        icons=icons,
+    )
+    write_performance_scatter(
+        pass_cost_svg,
+        "Pass Rate Vs Recorded Cost",
+        model_aggregates,
+        x_value="total_cost_usd",
+        x_label="Recorded cost across all runs",
+        x_format="cost",
+        y_value="pass_rate",
+        y_label="Pass rate",
         icons=icons,
         show_frontier=True,
     )
@@ -1215,6 +1270,8 @@ def main() -> None:
         heatmap_svg=heatmap_svg,
         score_tokens_svg=score_tokens_svg,
         score_cost_svg=score_cost_svg,
+        pass_tokens_svg=pass_tokens_svg,
+        pass_cost_svg=pass_cost_svg,
         aggregates_path=aggregates_json,
         csv_path=merged_csv,
         jsonl_path=merged_jsonl,
@@ -1234,6 +1291,8 @@ def main() -> None:
                     str(heatmap_svg),
                     str(score_tokens_svg),
                     str(score_cost_svg),
+                    str(pass_tokens_svg),
+                    str(pass_cost_svg),
                 ],
             },
             indent=2,

@@ -331,6 +331,29 @@ h2 {
   width: 100%;
 }
 
+.chart-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.chart-toolbar label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.chart-toolbar select {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: inherit;
+  min-height: 38px;
+  padding: 6px 34px 6px 10px;
+}
+
 .chart-block img {
   display: block;
   height: auto;

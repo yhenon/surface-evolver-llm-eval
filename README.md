@@ -392,6 +392,9 @@ The plotting script writes:
 - `score_vs_total_tokens.svg`: mean score versus total tokens by model.
 - `score_vs_total_cost.svg`: mean score versus recorded inference cost by model,
   with a stepped efficient frontier.
+- `pass_rate_vs_total_tokens.svg`: pass rate versus total tokens by model.
+- `pass_rate_vs_total_cost.svg`: pass rate versus recorded inference cost by
+  model, with a stepped efficient frontier.
 - `by_task.svg`: pass rate and mean score by task.
 - `task_model_heatmap.svg`: mean score for each task/model pair.
 - `merged_outcomes.jsonl` and `merged_outcomes.csv`: joined row-level data,

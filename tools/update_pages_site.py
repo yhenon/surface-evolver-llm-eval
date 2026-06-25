@@ -14,6 +14,8 @@ CHARTS = (
     "model_tool_usage.svg",
     "score_vs_total_tokens.svg",
     "score_vs_total_cost.svg",
+    "pass_rate_vs_total_tokens.svg",
+    "pass_rate_vs_total_cost.svg",
     "by_task.svg",
     "task_model_heatmap.svg",
 )
