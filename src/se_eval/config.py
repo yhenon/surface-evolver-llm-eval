@@ -23,6 +23,8 @@ DEFAULT_MODELS = (
     ("grok-build-0.1", "x-ai/grok-build-0.1"),
     ("claude-opus-4.8", "anthropic/claude-opus-4.8"),
     ("minimax-m3", "minimax/minimax-m3"),
+    ("glm-5.2", "z-ai/glm-5.2")
+
 )
 
 DEFAULT_PROVIDER_ROUTING = {

@@ -8,7 +8,13 @@
     {
       "name": "gemini-3.5-flash",
       "model": "google/gemini-3.5-flash",
-      "reasoning_effort": "medium"
+      "reasoning_effort": "medium",
+      "provider": {
+        "order": [
+          "google-vertex"
+        ],
+        "allow_fallbacks": false
+      }
     },
     {
       "name": "deepseek-v4-pro",
@@ -16,7 +22,10 @@
       "reasoning_effort": "high",
       "provider": {
         "order": [
-          "deepseek"
+          "streamlake/fp8",
+          "gmicloud/fp8",
+          "siliconflow/fp8",
+          "novita/fp8"
         ],
         "allow_fallbacks": false
       }
@@ -24,7 +33,13 @@
     {
       "name": "mistral-medium-3-5",
       "model": "mistralai/mistral-medium-3-5",
-      "reasoning_effort": "high"
+      "reasoning_effort": "high",
+      "provider": {
+        "order": [
+          "mistral"
+        ],
+        "allow_fallbacks": false
+      }
     },
     {
       "name": "trinity-large-thinking",
@@ -81,7 +96,13 @@
     {
       "name": "z-ai/glm-5.2-high",
       "model": "z-ai/glm-5.2",
-      "reasoning_effort": "high"
+      "reasoning_effort": "high",
+      "provider": {
+        "order": [
+          "z-ai/fp8"
+        ],
+        "allow_fallbacks": false
+      }
     }
   ]
 }

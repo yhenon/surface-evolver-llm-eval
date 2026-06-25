@@ -28,6 +28,7 @@ from .tools import OPENAI_TOOLS, execute_tool
 
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+OPENROUTER_KEY_FILE = ".openrouter_key"
 DEFAULT_TASK_VISIBILITY = "private"
 TASK_VISIBILITY_DIRS = {
     "public": "tasks_public",
@@ -41,6 +42,12 @@ RESPONSE_PREVIEW_CHARS = 4000
 RUN_ERROR_FILE = "run_error.json"
 CHAT_COMPLETION_ATTEMPTS = 3
 CHAT_COMPLETION_RETRY_DELAY_SECONDS = 2.0
+INVALID_CHAT_COMPLETION_RETRY_NUDGE = (
+    "The previous provider response was not a usable chat completion because "
+    "{validation_error} Please continue by returning a valid assistant message. "
+    "If you have the final .fe file, call submit_fe_file; otherwise call an "
+    "available tool or continue with a concise assistant message."
+)
 
 SYSTEM_PROMPT = """You are being evaluated on your ability to write valid Surface Evolver .fe files.
 
@@ -73,10 +80,25 @@ def now_slug() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
-def make_openrouter_client() -> OpenAI:
+def read_openrouter_api_key() -> str | None:
     api_key = os.environ.get("OPENROUTER_API_KEY")
+    if api_key:
+        return api_key
+
+    key_path = Path(OPENROUTER_KEY_FILE)
+    if not key_path.exists():
+        return None
+
+    return key_path.read_text(encoding="utf-8").strip() or None
+
+
+def make_openrouter_client() -> OpenAI:
+    api_key = read_openrouter_api_key()
     if not api_key:
-        raise RuntimeError("OPENROUTER_API_KEY is required to run evaluations through OpenRouter.")
+        raise RuntimeError(
+            "OPENROUTER_API_KEY is required to run evaluations through OpenRouter. "
+            f"Set it in the environment or create {OPENROUTER_KEY_FILE}."
+        )
 
     return OpenAI(
         api_key=api_key,
@@ -237,6 +259,12 @@ def text_preview(text: str, max_chars: int = RESPONSE_PREVIEW_CHARS) -> dict[str
     }
 
 
+def _jsonish_dump(value: Any) -> Any:
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json", exclude_none=True)
+    return _safe_json_value(value)
+
+
 def write_malformed_response_diagnostic(
     *,
     out_dir: Path,
@@ -281,8 +309,80 @@ def write_malformed_response_diagnostic(
     return path
 
 
+def write_invalid_chat_completion_diagnostic(
+    *,
+    out_dir: Path,
+    round_idx: int,
+    raw_response: Any,
+    response: Any,
+    validation_error: str,
+    attempt: int | None = None,
+    max_attempts: int | None = None,
+    retryable: bool = False,
+) -> Path:
+    http_response = raw_response.http_response
+    body = http_response.content
+    body_text = body.decode(http_response.encoding or "utf-8", errors="replace")
+    diagnostic = {
+        "error": "Invalid chat completion response from provider.",
+        "validation_error": validation_error,
+        "round": round_idx,
+        "attempt": attempt,
+        "max_attempts": max_attempts,
+        "retryable": retryable,
+        "status_code": http_response.status_code,
+        "reason_phrase": http_response.reason_phrase,
+        "url": str(http_response.url),
+        "headers": {
+            "content-type": http_response.headers.get("content-type"),
+            "content-length": http_response.headers.get("content-length"),
+            "x-request-id": http_response.headers.get("x-request-id"),
+            "cf-ray": http_response.headers.get("cf-ray"),
+        },
+        "body_bytes": len(body),
+        "body_preview": text_preview(body_text),
+        "parsed_response": _jsonish_dump(response),
+    }
+    attempt_suffix = f"_attempt_{attempt}" if attempt is not None else ""
+    path = out_dir / f"invalid_chat_completion_round_{round_idx}{attempt_suffix}.json"
+    path.write_text(json.dumps(diagnostic, indent=2, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
 def response_body_is_blank(raw_response: Any) -> bool:
     return not raw_response.http_response.content.strip()
+
+
+def chat_completion_validation_error(response: Any) -> str | None:
+    if isinstance(response, dict):
+        choices = response.get("choices")
+    else:
+        choices = getattr(response, "choices", None)
+
+    if not choices:
+        return "Chat completion response did not include any choices."
+
+    try:
+        first_choice = choices[0]
+    except (IndexError, KeyError, TypeError):
+        return "Chat completion response choices were not indexable."
+
+    if isinstance(first_choice, dict):
+        message = first_choice.get("message")
+    else:
+        message = getattr(first_choice, "message", None)
+
+    if message is None:
+        return "First chat completion choice did not include a message."
+
+    return None
+
+
+def invalid_chat_completion_retry_nudge(validation_error: str) -> dict[str, str]:
+    return {
+        "role": "user",
+        "content": INVALID_CHAT_COMPLETION_RETRY_NUDGE.format(validation_error=validation_error),
+    }
 
 
 def create_chat_completion(
@@ -295,17 +395,18 @@ def create_chat_completion(
     reasoning_effort: str | None,
     provider: dict[str, Any] | None,
 ) -> Any:
+    retry_messages = messages
     for attempt in range(1, CHAT_COMPLETION_ATTEMPTS + 1):
         raw_response = client.chat.completions.with_raw_response.create(
             model=model,
-            messages=messages,
+            messages=retry_messages,
             tools=OPENAI_TOOLS,
             tool_choice="auto",
             parallel_tool_calls=False,
             extra_body=extra_request_body(reasoning_effort=reasoning_effort, provider=provider),
         )
         try:
-            return raw_response.parse()
+            response = raw_response.parse()
         except JSONDecodeError as exc:
             retryable = response_body_is_blank(raw_response)
             if retryable and attempt < CHAT_COMPLETION_ATTEMPTS:
@@ -342,6 +443,40 @@ def create_chat_completion(
                 ),
                 diagnostic_path=diagnostic_path,
             ) from exc
+
+        validation_error = chat_completion_validation_error(response)
+        if validation_error is None:
+            return response
+
+        retryable = attempt < CHAT_COMPLETION_ATTEMPTS
+        diagnostic_path = write_invalid_chat_completion_diagnostic(
+            out_dir=out_dir,
+            round_idx=round_idx,
+            raw_response=raw_response,
+            response=response,
+            validation_error=validation_error,
+            attempt=attempt,
+            max_attempts=CHAT_COMPLETION_ATTEMPTS,
+            retryable=retryable,
+        )
+        if retryable:
+            retry_messages = [*messages, invalid_chat_completion_retry_nudge(validation_error)]
+            print(
+                "Provider returned invalid chat completion response "
+                f"round {round_idx}, attempt {attempt}/{CHAT_COMPLETION_ATTEMPTS}: "
+                f"{validation_error} Wrote diagnostic to {diagnostic_path} and retrying..."
+            )
+            time.sleep(CHAT_COMPLETION_RETRY_DELAY_SECONDS * attempt)
+            continue
+
+        raise CompletionResponseError(
+            (
+                "Provider returned invalid chat completion response "
+                f"round {round_idx}: {validation_error} "
+                f"Wrote diagnostic to {diagnostic_path}."
+            ),
+            diagnostic_path=diagnostic_path,
+        )
 
     raise AssertionError("unreachable chat completion retry state")
 
