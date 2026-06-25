@@ -322,23 +322,23 @@ runs/<model-name>/<visibility>_<task-id>/
 ```
 
 For example, DeepSeek's configured run for the public two-bubble task lives at
-`runs/deepseek-v4-pro/public_two_bubbles_2d/`. Compact aggregate files live at
-the runs root:
+`runs/deepseek-v4-pro/public_two_bubbles_2d/`. The run directories are the
+canonical source of truth. Compact aggregate files are derived from those
+artifacts:
 
-- `outcomes.jsonl`: one compact row per task/model pair, suitable for pandas or
-  plotting scripts.
 - `summary.json`: aggregate pass rates and mean scores by model and by task,
   rewritten after each completed run.
+- `runs/plots/merged_outcomes.jsonl` and `runs/plots/merged_outcomes.csv`:
+  optional plot/export artifacts suitable for pandas.
 
 Useful options include `--model <openrouter/model-id>` for exact model ids,
 `--all-baselines`, repeated `--task <task_id>` filters, `--skip-existing` for
 incrementally filling directories that lack both `result.json` and
-`run_error.json`, and `--results-file` / `--summary-file` for custom
-consolidated output paths. Configured reasoning defaults keep the configured
-model name in run directories. Explicit `--reasoning-effort` matrix overrides
-use `_reasoning-<effort>` or `_reasoning-na` suffixes so comparisons do not
-collide, and outcome rows include `reasoning_effort`, `reasoning_label` when no
-named effort is available, and `model_run_label`.
+`run_error.json`, and `--summary-file` for a custom derived summary path.
+Configured reasoning defaults keep the configured model name in run directories.
+Explicit `--reasoning-effort` matrix overrides use `_reasoning-<effort>` or
+`_reasoning-na` suffixes so comparisons do not collide; derived plot/export rows
+include `reasoning_effort` and `model_run_label`.
 
 Create the model/task directory grid without calling models:
 
@@ -376,11 +376,11 @@ PYTHONPATH=src uv run python -m se_eval.plot_results \
   --output-dir runs/plots
 ```
 
-Plot a specific outcomes file:
+Plot a specific run root:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.plot_results \
-  runs/outcomes.jsonl \
+  runs \
   --output-dir runs/joined_plots
 ```
 
@@ -413,18 +413,18 @@ After adding tasks, models, or run results, refresh the site assets with:
 PYTHONPATH=src uv run python tools/update_pages_site.py --replot
 ```
 
-That command regenerates `runs/plots/` from the current outcomes under
+That command regenerates `runs/plots/` from the current run artifacts under
 `runs/`, then copies the public chart and aggregate artifacts into:
 
 - `docs/assets/charts/`
 - `docs/data/`
 
-To publish a specific outcomes file instead of the default `runs/outcomes.jsonl`,
-pass it after `--replot`:
+To publish from a specific run root instead of the default `runs/`, pass it
+after `--replot`:
 
 ```bash
 PYTHONPATH=src uv run python tools/update_pages_site.py --replot \
-  runs/outcomes.jsonl
+  runs/some_matrix
 ```
 
 Commit the changed files in `docs/` and push to `main`; the Pages workflow will
@@ -440,23 +440,22 @@ Preview a rescore for one task/model pair:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.rescore_results \
-  runs/outcomes.jsonl \
+  runs \
   --task two_bubbles_2d \
   --model gpt-5.5 \
   --dry-run
 ```
 
-Rescore all rows in `runs/outcomes.jsonl`:
+Rescore all runs under `runs/`:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.rescore_results
 ```
 
-The rescore command overwrites each run's `result.json`, rewrites the source
-`outcomes.jsonl`, and refreshes `summary.json`. By default it creates
-`.bak-<timestamp>` copies of `outcomes.jsonl` and `summary.json` before
-rewriting them. After rescoring, run `se_eval.plot_results` again to regenerate
-joined plots.
+The rescore command overwrites each submitted run's `result.json` and refreshes
+the derived `summary.json`. By default it creates a `.bak-<timestamp>` copy of
+`summary.json` before rewriting it. After rescoring, run `se_eval.plot_results`
+again to regenerate joined plots.
 
 ## Tasks
 

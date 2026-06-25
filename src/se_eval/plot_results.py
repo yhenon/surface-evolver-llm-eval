@@ -10,8 +10,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+from .config import DEFAULT_CONFIG_PATH
 from .models import Task
-from .outcomes import materialized_outcomes
+from .outcomes import discover_outcomes_from_runs
 
 
 Outcome = dict[str, Any]
@@ -124,45 +125,32 @@ TOOL_COLORS = {
 }
 
 
-def load_jsonl(path: Path) -> list[Outcome]:
-    rows: list[Outcome] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        if not line.strip():
-            continue
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"Invalid JSONL at {path}:{line_number}: {exc}") from exc
-    return rows
-
-
-def outcomes_path(input_path: Path) -> Path:
-    if input_path.is_dir():
-        return input_path / "outcomes.jsonl"
-    return input_path
-
-
 def discover_result_dirs(runs_root: Path) -> list[Path]:
     if not runs_root.exists():
         return []
-    if (runs_root / "outcomes.jsonl").exists():
-        return [runs_root]
-    return sorted(path for path in runs_root.glob("*_matrix") if path.is_dir())
+    return [runs_root]
 
 
-def read_outcomes(inputs: Iterable[Path]) -> list[Outcome]:
+def read_outcomes(
+    inputs: Iterable[Path],
+    *,
+    public_task_dir: Path,
+    private_task_dir: Path,
+    config_path: Path,
+) -> list[Outcome]:
     outcomes: list[Outcome] = []
     for input_path in inputs:
-        path = outcomes_path(input_path)
-        if not path.exists():
-            raise FileNotFoundError(f"No outcomes JSONL found at {path}")
-        rows = load_jsonl(path)
+        if not input_path.is_dir():
+            raise FileNotFoundError(f"Run root is not a directory: {input_path}")
+        rows = discover_outcomes_from_runs(
+            input_path,
+            public_task_dir=public_task_dir,
+            private_task_dir=private_task_dir,
+            config_path=config_path,
+        )
         for row in rows:
-            row.setdefault("source_path", str(path))
-        kept, skipped = materialized_outcomes(rows, keep_missing_out_dir=False)
-        if skipped:
-            print(f"Ignoring {len(skipped)} missing or empty placeholder outcome rows from {path}")
-        outcomes.extend(kept)
+            row.setdefault("source_path", str(input_path))
+        outcomes.extend(rows)
     return outcomes
 
 
@@ -1117,7 +1105,7 @@ def parse_args() -> argparse.Namespace:
         "inputs",
         nargs="*",
         type=Path,
-        help="Run roots or outcomes.jsonl files. Defaults to runs/ when runs/outcomes.jsonl exists.",
+        help="Run roots to scan. Defaults to --runs-root.",
     )
     parser.add_argument(
         "--runs-root",
@@ -1126,6 +1114,7 @@ def parse_args() -> argparse.Namespace:
         help="Root used for default discovery when no inputs are passed.",
     )
     parser.add_argument("--output-dir", type=Path, default=Path("runs/plots"))
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--public-task-dir", type=Path, default=Path("tasks_public"))
     parser.add_argument("--private-task-dir", type=Path, default=Path("tasks_private"))
     parser.add_argument(
@@ -1149,7 +1138,12 @@ def main() -> None:
     if not inputs:
         raise SystemExit(f"No outcome directories found under {args.runs_root}")
 
-    outcomes = read_outcomes(inputs)
+    outcomes = read_outcomes(
+        inputs,
+        public_task_dir=args.public_task_dir,
+        private_task_dir=args.private_task_dir,
+        config_path=args.config,
+    )
     if not args.no_dedupe:
         outcomes = dedupe_outcomes(outcomes)
     if not outcomes:

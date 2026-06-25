@@ -7,9 +7,10 @@ import time
 from pathlib import Path
 from typing import Any
 
+from .config import DEFAULT_CONFIG_PATH
 from .grader import grade_existing_submission
 from .models import Task
-from .outcomes import materialized_outcomes
+from .outcomes import discover_outcomes_from_runs
 from .run_eval import TASK_VISIBILITY_DIRS, now_slug
 from .run_matrix import write_summary
 
@@ -20,34 +21,7 @@ Outcome = dict[str, Any]
 def discover_result_dirs(runs_root: Path) -> list[Path]:
     if not runs_root.exists():
         return []
-    if (runs_root / "outcomes.jsonl").exists():
-        return [runs_root]
-    return sorted(path for path in runs_root.glob("*_matrix") if path.is_dir())
-
-
-def outcomes_path(input_path: Path) -> Path:
-    if input_path.is_dir():
-        return input_path / "outcomes.jsonl"
-    return input_path
-
-
-def load_jsonl(path: Path) -> list[Outcome]:
-    rows: list[Outcome] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        if not line.strip():
-            continue
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"Invalid JSONL at {path}:{line_number}: {exc}") from exc
-    return rows
-
-
-def write_jsonl(path: Path, rows: list[Outcome]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        for row in rows:
-            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return [runs_root]
 
 
 def task_path_for(row: Outcome) -> Path:
@@ -150,7 +124,12 @@ def rescore_rows(
         start = time.monotonic()
         try:
             if not row.get("submitted", True):
-                raise FileNotFoundError("Outcome row has submitted=false; no saved submission to rescore.")
+                print(
+                    f"skipped no-submission row {row.get('task_visibility')}/{row.get('task_id')} :: "
+                    f"{row.get('model_run_label') or row.get('model_label')}"
+                )
+                rescored.append(row)
+                continue
             task = Task.load(task_path_for(row).stem, task_path_for(row).parent)
             grade = grade_existing_submission(
                 input_path=out_dir,
@@ -183,14 +162,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Re-run grading on saved matrix submissions without calling models, "
-            "then refresh result.json, outcomes.jsonl, and summary.json."
+            "then refresh result.json and summary.json."
         )
     )
     parser.add_argument(
         "inputs",
         nargs="*",
         type=Path,
-        help="Run roots or outcomes.jsonl files. Defaults to runs/ when runs/outcomes.jsonl exists.",
+        help="Run roots to scan. Defaults to --runs-root.",
     )
     parser.add_argument(
         "--runs-root",
@@ -198,6 +177,9 @@ def parse_args() -> argparse.Namespace:
         default=Path("runs"),
         help="Root used for default discovery when no inputs are passed.",
     )
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
+    parser.add_argument("--public-task-dir", type=Path, default=Path(TASK_VISIBILITY_DIRS["public"]))
+    parser.add_argument("--private-task-dir", type=Path, default=Path(TASK_VISIBILITY_DIRS["private"]))
     parser.add_argument("--visual", action="store_true", help="Regenerate visual.svg and visual.off while rescoring.")
     parser.add_argument(
         "--task",
@@ -217,7 +199,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-backup",
         action="store_true",
-        help="Do not create .bak-<timestamp> copies of outcomes.jsonl and summary.json before rewriting.",
+        help="Do not create a .bak-<timestamp> copy of summary.json before rewriting.",
     )
     parser.add_argument(
         "--fail-fast",
@@ -240,16 +222,16 @@ def main() -> None:
     task_filter = set(args.task) if args.task else None
     model_filter = set(args.model) if args.model else None
     for input_path in inputs:
-        path = outcomes_path(input_path)
-        if not path.exists():
-            raise FileNotFoundError(f"No outcomes JSONL found at {path}")
-
-        rows = load_jsonl(path)
-        rows, skipped_rows = materialized_outcomes(rows, keep_missing_out_dir=False)
-        if skipped_rows:
-            print(f"Ignoring {len(skipped_rows)} missing or empty placeholder outcome rows from {path}")
+        if not input_path.is_dir():
+            raise FileNotFoundError(f"Run root is not a directory: {input_path}")
+        rows = discover_outcomes_from_runs(
+            input_path,
+            public_task_dir=args.public_task_dir,
+            private_task_dir=args.private_task_dir,
+            config_path=args.config,
+        )
         total_rows += len(rows)
-        print(f"Rescoring {len(rows)} rows from {path}")
+        print(f"Rescoring {len(rows)} rows from {input_path}")
         rescored, rescored_count = rescore_rows(
             rows,
             write_result=not args.dry_run,
@@ -260,16 +242,14 @@ def main() -> None:
         )
         total_rescored += rescored_count
 
-        summary_path = path.parent / "summary.json"
+        summary_path = input_path / "summary.json"
         if not args.dry_run:
             if not args.no_backup:
-                for backup_target in (path, summary_path):
-                    backup = backup_file(backup_target, backup_suffix)
-                    if backup is not None:
-                        changed_files.append(str(backup))
-            write_jsonl(path, rescored)
+                backup = backup_file(summary_path, backup_suffix)
+                if backup is not None:
+                    changed_files.append(str(backup))
             write_summary(summary_path, rescored)
-            changed_files.extend([str(path), str(summary_path)])
+            changed_files.append(str(summary_path))
 
     print(
         json.dumps(

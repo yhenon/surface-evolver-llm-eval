@@ -17,7 +17,7 @@ from .config import (
     resolve_model_name,
 )
 from .models import Task
-from .outcomes import materialized_outcomes
+from .outcomes import discover_outcomes_from_runs
 from .run_eval import (
     REASONING_EFFORTS,
     RUN_ERROR_FILE,
@@ -253,29 +253,7 @@ def write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def append_jsonl(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
-
-
-def load_jsonl(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-
-    rows: list[dict[str, Any]] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        if not line.strip():
-            continue
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"Invalid JSONL at {path}:{line_number}: {exc}") from exc
-    return rows
-
-
 def write_summary(path: Path, outcomes: list[dict[str, Any]]) -> None:
-    outcomes, _skipped = materialized_outcomes(outcomes, keep_missing_out_dir=False)
     by_model: dict[str, dict[str, Any]] = {}
     by_task: dict[str, dict[str, Any]] = {}
 
@@ -368,11 +346,6 @@ def parse_args() -> argparse.Namespace:
         help="Directory for run outputs. Defaults to --out-root.",
     )
     parser.add_argument(
-        "--results-file",
-        type=Path,
-        help="JSONL file for one compact outcome per model/task run. Defaults inside --matrix-dir.",
-    )
-    parser.add_argument(
         "--summary-file",
         type=Path,
         help="Summary JSON file rewritten after each completed run. Defaults inside --matrix-dir.",
@@ -400,7 +373,6 @@ def main() -> None:
     args = parse_args()
     matrix_id = "incremental"
     matrix_dir = args.matrix_dir or args.out_root
-    results_file = args.results_file or matrix_dir / "outcomes.jsonl"
     summary_file = args.summary_file or matrix_dir / "summary.json"
     baseline_models = configured_model_spec_map(args.config)
 
@@ -437,20 +409,18 @@ def main() -> None:
         print(json.dumps({"matrix_dir": str(matrix_dir), "planned": planned}, indent=2, ensure_ascii=False))
         return
 
-    print(f"Writing outcomes to {results_file}")
     print(f"Writing summary to {summary_file}")
 
-    outcomes: list[dict[str, Any]] = []
-    if args.skip_existing:
-        loaded_outcomes = load_jsonl(results_file)
-        outcomes, skipped_outcomes = materialized_outcomes(loaded_outcomes, keep_missing_out_dir=False)
-        if skipped_outcomes:
-            print(
-                f"Ignoring {len(skipped_outcomes)} outcome rows whose out_dir is missing "
-                "or has no run artifacts."
-            )
+    outcomes = discover_outcomes_from_runs(
+        matrix_dir,
+        public_task_dir=args.public_task_dir,
+        private_task_dir=args.private_task_dir,
+        config_path=args.config,
+        matrix_id=matrix_id,
+    )
     if outcomes:
-        print(f"Loaded {len(outcomes)} existing outcomes from {results_file}")
+        print(f"Discovered {len(outcomes)} existing outcomes from run directories")
+    write_summary(summary_file, outcomes)
 
     for item in planned:
         task_spec = next(
@@ -540,8 +510,8 @@ def main() -> None:
             error=error,
             error_path=error_path,
         )
+        outcomes = [existing for existing in outcomes if existing.get("out_dir") != str(out_dir)]
         outcomes.append(outcome)
-        append_jsonl(results_file, outcome)
         write_summary(summary_file, outcomes)
         print(json.dumps(outcome, indent=2, ensure_ascii=False))
 
@@ -549,7 +519,6 @@ def main() -> None:
         json.dumps(
             {
                 "matrix_dir": str(matrix_dir),
-                "results_file": str(results_file),
                 "summary_file": str(summary_file),
                 "runs": len(outcomes),
                 "passed": sum(int(bool(outcome.get("passed"))) for outcome in outcomes),

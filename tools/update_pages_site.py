@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
         "inputs",
         nargs="*",
         type=Path,
-        help="Optional matrix directories or outcomes.jsonl files to pass to se_eval.plot_results with --replot.",
+        help="Optional run roots to pass to se_eval.plot_results with --replot.",
     )
     parser.add_argument("--plots-dir", type=Path, default=Path("runs/plots"))
     parser.add_argument("--docs-dir", type=Path, default=Path("docs"))
