@@ -90,6 +90,11 @@
       "reasoning_effort": "high"
     },
     {
+      "name": "claude-sonnet-5",
+      "model": "anthropic/claude-sonnet-5",
+      "reasoning_effort": "medium"
+    },
+    {
       "name": "poolside-laguna-m.1",
       "model": "poolside/laguna-m.1"
     },
