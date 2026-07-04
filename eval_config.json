@@ -95,8 +95,23 @@
       "reasoning_effort": "medium"
     },
     {
+      "name": "claude-fable-5",
+      "model": "anthropic/claude-fable-5",
+      "reasoning_effort": "high",
+      "provider": {
+        "order": [
+          "anthropic"
+        ],
+        "allow_fallbacks": false
+      }
+    },
+    {
       "name": "poolside-laguna-m.1",
       "model": "poolside/laguna-m.1"
+    },
+    {
+      "name": "gpt-oss-120b",
+      "model": "openai/gpt-oss-120b"
     },
     {
       "name": "z-ai/glm-5.2-high",
