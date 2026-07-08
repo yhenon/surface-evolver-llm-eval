@@ -98,6 +98,8 @@ def export_off(fe_content: str, timeout_s: float = 10.0) -> dict[str, Any]:
                 argv,
                 cwd=tmpdir,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 input="quit\n",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

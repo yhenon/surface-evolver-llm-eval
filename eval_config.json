@@ -114,6 +114,11 @@
       "model": "openai/gpt-oss-120b"
     },
     {
+      "name": "grok-4.5",
+      "model": "x-ai/grok-4.5",
+      "reasoning_effort": "high"
+    },
+    {
       "name": "z-ai/glm-5.2-high",
       "model": "z-ai/glm-5.2",
       "reasoning_effort": "high",

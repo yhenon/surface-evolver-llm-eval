@@ -81,6 +81,8 @@ def run_surface_evolver(
                 argv,
                 cwd=tmpdir,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 input="quit\n",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
