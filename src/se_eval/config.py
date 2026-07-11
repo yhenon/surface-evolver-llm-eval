@@ -9,6 +9,8 @@ from typing import Any
 DEFAULT_CONFIG_PATH = Path("eval_config.json")
 DEFAULT_BASELINE = "gpt-5.5"
 REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
+API_PROVIDERS = ("openrouter", "openai")
+DEFAULT_API_PROVIDER = "openrouter"
 
 DEFAULT_MODELS = (
     ("gpt-5.5", "openai/gpt-5.5"),
@@ -60,6 +62,7 @@ class ConfiguredModel:
     model: str
     reasoning_effort: str | None = None
     provider: dict[str, Any] | None = None
+    api_provider: str = DEFAULT_API_PROVIDER
 
 
 def model_name_from_id(model: str) -> str:
@@ -97,7 +100,13 @@ def load_configured_models(config_path: Path = DEFAULT_CONFIG_PATH) -> list[Conf
         name = _required_str(raw, "name", config_path, index)
         model = _required_str(raw, "model", config_path, index)
         reasoning_effort = _optional_reasoning_effort(raw, config_path, index)
+        api_provider = _optional_api_provider(raw, config_path, index)
         provider = _optional_provider_routing(raw, model, config_path, index)
+        if api_provider != "openrouter" and provider is not None:
+            raise ValueError(
+                f"{config_path}: models[{index}].provider is OpenRouter routing and may only "
+                "be set when api_provider is 'openrouter'."
+            )
         if name in seen:
             raise ValueError(f"{config_path}: duplicate model name {name!r}.")
         seen.add(name)
@@ -105,6 +114,7 @@ def load_configured_models(config_path: Path = DEFAULT_CONFIG_PATH) -> list[Conf
             ConfiguredModel(
                 name=name,
                 model=model,
+                api_provider=api_provider,
                 reasoning_effort=reasoning_effort,
                 provider=provider,
             )
@@ -140,6 +150,16 @@ def _optional_reasoning_effort(raw: dict[str, Any], config_path: Path, index: in
             f"{', '.join(REASONING_EFFORTS)}."
         )
     return effort
+
+
+def _optional_api_provider(raw: dict[str, Any], config_path: Path, index: int) -> str:
+    value = raw.get("api_provider", DEFAULT_API_PROVIDER)
+    if not isinstance(value, str) or value.strip().lower() not in API_PROVIDERS:
+        raise ValueError(
+            f"{config_path}: models[{index}].api_provider must be one of: "
+            f"{', '.join(API_PROVIDERS)}."
+        )
+    return value.strip().lower()
 
 
 def _optional_provider_routing(

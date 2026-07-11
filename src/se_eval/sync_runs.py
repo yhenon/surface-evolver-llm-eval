@@ -60,6 +60,7 @@ def planned_dirs(args: argparse.Namespace) -> list[Path]:
             label=name,
             baseline=name,
             model=model.model,
+            api_provider=model.api_provider,
             reasoning_effort=model.reasoning_effort,
             provider=model.provider,
         )

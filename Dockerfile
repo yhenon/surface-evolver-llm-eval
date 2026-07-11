@@ -19,6 +19,6 @@ ENV PYTHONPATH=/app/src
 ENV SE_EVAL_TASK_VISIBILITY=private
 ENV SE_EVOLVER_DOC_DIR=/app/tools/docs
 
-# Configure OpenRouter at runtime:
-# docker run --rm -e OPENROUTER_API_KEY=... -e OPENROUTER_BASELINE=gpt-5.5 se-llm-eval
+# Configure the API provider at runtime. OpenRouter remains the default; native
+# OpenAI uses SE_EVAL_API_PROVIDER=openai and OPENAI_API_KEY.
 CMD ["python", "-m", "se_eval.run_eval"]

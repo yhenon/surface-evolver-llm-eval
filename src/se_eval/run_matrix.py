@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import Any
 
 from .config import (
+    API_PROVIDERS,
     DEFAULT_CONFIG_PATH,
+    DEFAULT_API_PROVIDER,
     ConfiguredModel,
     configured_model_spec_map,
     default_provider_routing,
@@ -43,6 +45,7 @@ class TaskSpec:
 class ModelSpec:
     label: str
     model: str
+    api_provider: str = DEFAULT_API_PROVIDER
     baseline: str | None = None
     reasoning_effort: str | None = None
     provider: dict[str, Any] | None = None
@@ -94,6 +97,7 @@ def selected_model_specs(
     baseline_models: dict[str, ConfiguredModel],
 ) -> list[ModelSpec]:
     specs: list[ModelSpec] = []
+    api_provider_override = getattr(args, "api_provider", None)
 
     baselines = list(baseline_models) if args.all_baselines else args.baseline
     if not baselines and not args.model:
@@ -115,8 +119,13 @@ def selected_model_specs(
                 label=baseline_name,
                 baseline=baseline_name,
                 model=configured.model,
+                api_provider=api_provider_override or configured.api_provider,
                 reasoning_effort=configured.reasoning_effort,
-                provider=configured.provider,
+                provider=(
+                    configured.provider
+                    if (api_provider_override or configured.api_provider) == "openrouter"
+                    else None
+                ),
             )
         )
 
@@ -125,14 +134,19 @@ def selected_model_specs(
             ModelSpec(
                 label=model_name_from_id(model),
                 model=model,
-                provider=default_provider_routing(model),
+                api_provider=api_provider_override or DEFAULT_API_PROVIDER,
+                provider=(
+                    default_provider_routing(model)
+                    if (api_provider_override or DEFAULT_API_PROVIDER) == "openrouter"
+                    else None
+                ),
             )
         )
 
     deduped: list[ModelSpec] = []
-    seen: set[tuple[str, str | None, str | None]] = set()
+    seen: set[tuple[str, str, str | None, str | None]] = set()
     for spec in specs:
-        key = (spec.model, spec.baseline, spec.reasoning_effort)
+        key = (spec.model, spec.api_provider, spec.baseline, spec.reasoning_effort)
         if key in seen:
             continue
         seen.add(key)
@@ -228,6 +242,7 @@ def summarize_outcome(
         "model_run_label": model_run_label(model_spec, reasoning_effort),
         "baseline": model_spec.baseline,
         "model": model_spec.model,
+        "api_provider": model_spec.api_provider,
         "reasoning_effort": reasoning_effort,
         "provider": model_spec.provider,
         "out_dir": str(out_dir),
@@ -323,16 +338,21 @@ def parse_args() -> argparse.Namespace:
         help="Run every configured named baseline.",
     )
     parser.add_argument(
+        "--api-provider",
+        choices=API_PROVIDERS,
+        help="Override the configured API provider for all selected models.",
+    )
+    parser.add_argument(
         "--model",
         action="append",
-        help="Exact OpenRouter model id to run. Repeat to select multiple.",
+        help="Exact model id to run. Repeat to select multiple.",
     )
     parser.add_argument(
         "--reasoning-effort",
         "--reasoning_effort",
         action="append",
         help=(
-            "Optional OpenRouter reasoning effort for models that support thinking tokens. "
+            "Optional reasoning effort for models that support thinking tokens. "
             "Repeat or pass a comma-separated list to expand the matrix, e.g. high,na,low. "
             "Use na to omit reasoning controls for that run."
         ),
@@ -396,6 +416,7 @@ def main() -> None:
             "model_run_label": model_run_label(model, reasoning_effort),
             "baseline": model.baseline,
             "model": model.model,
+            "api_provider": model.api_provider,
             "reasoning_effort": reasoning_effort,
             "provider": model.provider,
             "out_dir": str(run_dir(matrix_dir, task, model, reasoning_effort)),
@@ -465,6 +486,7 @@ def main() -> None:
                 max_rounds=args.max_rounds,
                 reasoning_effort=reasoning_effort,
                 provider=model_spec.provider,
+                api_provider=model_spec.api_provider,
                 write_visual=args.visual,
             )
         except Exception as exc:
@@ -485,6 +507,7 @@ def main() -> None:
                         "model_run_label": model_run_label(model_spec, reasoning_effort),
                         "baseline": model_spec.baseline,
                         "model": model_spec.model,
+                        "api_provider": model_spec.api_provider,
                         "reasoning_effort": reasoning_effort,
                         "provider": model_spec.provider,
                         "out_dir": str(out_dir),

@@ -119,6 +119,25 @@
       "reasoning_effort": "high"
     },
     {
+      "name": "gpt-5.6-luna",
+      "model": "openai/gpt-5.6-luna",
+      "reasoning_effort": "medium",
+      "api_provider": "openai"
+    },
+    {
+      "name": "gpt-5.6-terra-xhigh",
+      "model": "openai/gpt-5.6-terra",
+      "reasoning_effort": "xhigh",
+      "api_provider": "openai"
+
+    },
+    {
+      "name": "gpt-5.6-sol-xhigh",
+      "model": "openai/gpt-5.6-sol",
+      "reasoning_effort": "xhigh",
+      "api_provider": "openai"
+    },
+    {
       "name": "z-ai/glm-5.2-high",
       "model": "z-ai/glm-5.2",
       "reasoning_effort": "high",

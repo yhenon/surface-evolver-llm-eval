@@ -109,6 +109,13 @@ OPENAI_TOOLS: list[dict[str, Any]] = [
     },
 ]
 
+# Responses API function definitions are flat, unlike the nested function
+# object used by Chat Completions (and OpenRouter's compatible endpoint).
+OPENAI_RESPONSES_TOOLS: list[dict[str, Any]] = [
+    {"type": "function", **tool["function"]}
+    for tool in OPENAI_TOOLS
+]
+
 
 def execute_tool(name: str, raw_arguments: str, task: Task) -> tuple[dict[str, Any], str | None]:
     """

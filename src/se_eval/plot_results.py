@@ -12,6 +12,7 @@ from typing import Any, Iterable
 
 from .config import DEFAULT_CONFIG_PATH
 from .models import Task
+from .openai_pricing import estimate_openai_usage_cost
 from .outcomes import discover_outcomes_from_runs
 
 
@@ -287,6 +288,15 @@ def cost_usage_from_generation(generation: Outcome) -> dict[str, Any] | None:
     for round_usage in per_round:
         usage = (round_usage or {}).get("usage") or {}
         cost = numeric_value(usage.get("cost"))
+        if cost is None and generation.get("api_provider") == "openai":
+            estimate = estimate_openai_usage_cost(
+                usage,
+                model=str(generation.get("model") or ""),
+                service_tier=usage.get("service_tier"),
+            )
+            if estimate is not None:
+                usage = {**usage, **estimate}
+                cost = numeric_value(usage.get("cost"))
         if cost is None:
             continue
         cost_rounds += 1

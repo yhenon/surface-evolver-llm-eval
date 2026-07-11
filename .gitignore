@@ -5,6 +5,7 @@ __pycache__/
 *.py[cod]
 .key
 .openrouter_key
+.openai_key
 runs/
 tasks_private/
 ground_truth_fe/

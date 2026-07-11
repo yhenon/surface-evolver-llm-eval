@@ -15,7 +15,9 @@ from openai import OpenAI
 
 from .grader import grade_existing_submission
 from .config import (
+    API_PROVIDERS,
     DEFAULT_BASELINE,
+    DEFAULT_API_PROVIDER,
     REASONING_EFFORTS,
     ConfiguredModel,
     configured_model_spec_map,
@@ -24,11 +26,13 @@ from .config import (
     resolve_model_name,
 )
 from .models import Task
-from .tools import OPENAI_TOOLS, execute_tool
+from .openai_pricing import estimate_openai_usage_cost
+from .tools import OPENAI_RESPONSES_TOOLS, OPENAI_TOOLS, execute_tool
 
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_KEY_FILE = ".openrouter_key"
+OPENAI_KEY_FILE = ".openai_key"
 DEFAULT_TASK_VISIBILITY = "private"
 TASK_VISIBILITY_DIRS = {
     "public": "tasks_public",
@@ -108,6 +112,45 @@ def make_openrouter_client() -> OpenAI:
             "X-Title": os.environ.get("OPENROUTER_APP_TITLE", "Surface Evolver Bench"),
         },
     )
+
+
+def read_openai_api_key() -> str | None:
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if api_key:
+        return api_key
+
+    key_path = Path(OPENAI_KEY_FILE)
+    if not key_path.exists():
+        return None
+    return key_path.read_text(encoding="utf-8").strip() or None
+
+
+def make_openai_client() -> OpenAI:
+    api_key = read_openai_api_key()
+    if not api_key:
+        raise RuntimeError(
+            "OPENAI_API_KEY is required to run evaluations through OpenAI. "
+            f"Set it in the environment or create {OPENAI_KEY_FILE}."
+        )
+
+    kwargs: dict[str, Any] = {"api_key": api_key}
+    if base_url := os.environ.get("OPENAI_BASE_URL"):
+        kwargs["base_url"] = base_url
+    return OpenAI(**kwargs)
+
+
+def make_api_client(api_provider: str) -> OpenAI:
+    if api_provider == "openrouter":
+        return make_openrouter_client()
+    if api_provider == "openai":
+        return make_openai_client()
+    raise ValueError(f"Unsupported API provider {api_provider!r}. Expected one of: {', '.join(API_PROVIDERS)}.")
+
+
+def model_id_for_api_provider(model: str, api_provider: str) -> str:
+    if api_provider == "openai" and model.startswith("openai/"):
+        return model.removeprefix("openai/")
+    return model
 
 
 def reasoning_body(reasoning_effort: str | None) -> dict[str, Any]:
@@ -397,13 +440,19 @@ def create_chat_completion(
 ) -> Any:
     retry_messages = messages
     for attempt in range(1, CHAT_COMPLETION_ATTEMPTS + 1):
+        request: dict[str, Any] = {
+            "model": model,
+            "messages": retry_messages,
+            "tools": OPENAI_TOOLS,
+            "tool_choice": "auto",
+            "parallel_tool_calls": False,
+        }
+        request["extra_body"] = extra_request_body(
+            reasoning_effort=reasoning_effort,
+            provider=provider,
+        )
         raw_response = client.chat.completions.with_raw_response.create(
-            model=model,
-            messages=retry_messages,
-            tools=OPENAI_TOOLS,
-            tool_choice="auto",
-            parallel_tool_calls=False,
-            extra_body=extra_request_body(reasoning_effort=reasoning_effort, provider=provider),
+            **request,
         )
         try:
             response = raw_response.parse()
@@ -481,6 +530,104 @@ def create_chat_completion(
     raise AssertionError("unreachable chat completion retry state")
 
 
+def responses_validation_error(response: Any) -> str | None:
+    output = response.get("output") if isinstance(response, dict) else getattr(response, "output", None)
+    if output is None:
+        return "Responses API response did not include an output array."
+    return None
+
+
+def create_openai_response(
+    *,
+    client: OpenAI,
+    out_dir: Path,
+    round_idx: int,
+    model: str,
+    input_items: list[dict[str, Any]],
+    reasoning_effort: str | None,
+) -> Any:
+    retry_input = list(input_items)
+    for attempt in range(1, CHAT_COMPLETION_ATTEMPTS + 1):
+        request: dict[str, Any] = {
+            "model": model_id_for_api_provider(model, "openai"),
+            "input": list(retry_input),
+            "tools": OPENAI_RESPONSES_TOOLS,
+            "tool_choice": "auto",
+            "parallel_tool_calls": False,
+        }
+        if reasoning_effort:
+            request["reasoning"] = {"effort": reasoning_effort}
+
+        raw_response = client.responses.with_raw_response.create(**request)
+        try:
+            response = raw_response.parse()
+        except JSONDecodeError as exc:
+            retryable = response_body_is_blank(raw_response)
+            diagnostic_path = write_malformed_response_diagnostic(
+                out_dir=out_dir,
+                round_idx=round_idx,
+                raw_response=raw_response,
+                exc=exc,
+                attempt=attempt,
+                max_attempts=CHAT_COMPLETION_ATTEMPTS,
+                retryable=retryable,
+            )
+            if retryable and attempt < CHAT_COMPLETION_ATTEMPTS:
+                print(
+                    "OpenAI returned blank malformed JSON for Responses API "
+                    f"round {round_idx}, attempt {attempt}/{CHAT_COMPLETION_ATTEMPTS}; "
+                    f"wrote diagnostic to {diagnostic_path} and retrying..."
+                )
+                time.sleep(CHAT_COMPLETION_RETRY_DELAY_SECONDS * attempt)
+                continue
+            raise CompletionResponseError(
+                (
+                    "OpenAI returned malformed JSON for Responses API "
+                    f"round {round_idx}; wrote diagnostic to {diagnostic_path}."
+                ),
+                diagnostic_path=diagnostic_path,
+            ) from exc
+
+        validation_error = responses_validation_error(response)
+        if validation_error is None:
+            return response
+
+        retryable = attempt < CHAT_COMPLETION_ATTEMPTS
+        diagnostic_path = write_invalid_chat_completion_diagnostic(
+            out_dir=out_dir,
+            round_idx=round_idx,
+            raw_response=raw_response,
+            response=response,
+            validation_error=validation_error,
+            attempt=attempt,
+            max_attempts=CHAT_COMPLETION_ATTEMPTS,
+            retryable=retryable,
+        )
+        if retryable:
+            retry_input = [
+                *input_items,
+                invalid_chat_completion_retry_nudge(validation_error),
+            ]
+            print(
+                "OpenAI returned an invalid Responses API response "
+                f"for round {round_idx}, attempt {attempt}/{CHAT_COMPLETION_ATTEMPTS}: "
+                f"{validation_error} Wrote diagnostic to {diagnostic_path} and retrying..."
+            )
+            time.sleep(CHAT_COMPLETION_RETRY_DELAY_SECONDS * attempt)
+            continue
+
+        raise CompletionResponseError(
+            (
+                "OpenAI returned an invalid Responses API response "
+                f"for round {round_idx}: {validation_error} "
+                f"Wrote diagnostic to {diagnostic_path}."
+            ),
+            diagnostic_path=diagnostic_path,
+        )
+
+    raise AssertionError("unreachable Responses API retry state")
+
+
 def generate_submission(
     task: Task,
     out_dir: Path,
@@ -488,8 +635,9 @@ def generate_submission(
     max_rounds: int = 8,
     reasoning_effort: str | None = None,
     provider: dict[str, Any] | None = None,
+    api_provider: str = DEFAULT_API_PROVIDER,
 ) -> dict[str, Any]:
-    client = make_openrouter_client()
+    client = make_api_client(api_provider)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     messages: list[dict[str, Any]] = [
@@ -530,15 +678,27 @@ def generate_submission(
         print(f"Round {current_round}/{max_rounds}, sending request...")
         rounds_used = current_round
         try:
-            response = create_chat_completion(
-                client=client,
-                out_dir=out_dir,
-                round_idx=current_round,
-                model=model,
-                messages=messages,
-                reasoning_effort=reasoning_effort,
-                provider=provider,
-            )
+            if api_provider == "openai":
+                if provider:
+                    raise ValueError("OpenRouter provider routing cannot be used with the native OpenAI API.")
+                response = create_openai_response(
+                    client=client,
+                    out_dir=out_dir,
+                    round_idx=current_round,
+                    model=model,
+                    input_items=messages,
+                    reasoning_effort=reasoning_effort,
+                )
+            else:
+                response = create_chat_completion(
+                    client=client,
+                    out_dir=out_dir,
+                    round_idx=current_round,
+                    model=model,
+                    messages=messages,
+                    reasoning_effort=reasoning_effort,
+                    provider=provider,
+                )
         except CompletionResponseError as exc:
             generation_error = str(exc)
             generation_exception = exc
@@ -552,6 +712,17 @@ def generate_submission(
             break
 
         usage = response_usage_dict(response)
+        if usage is not None and api_provider == "openai" and "cost" not in usage:
+            service_tier = getattr(response, "service_tier", None)
+            if service_tier is not None:
+                usage["service_tier"] = service_tier
+            cost = estimate_openai_usage_cost(
+                usage,
+                model=str(getattr(response, "model", None) or model),
+                service_tier=service_tier,
+            )
+            if cost is not None:
+                usage.update(cost)
         if usage is not None:
             add_token_usage(token_usage_totals, usage)
             per_round_usage.append({
@@ -559,17 +730,38 @@ def generate_submission(
                 "usage": usage,
             })
 
-        msg = response.choices[0].message
-        print(msg)
-        msg_dict = msg.model_dump(mode="json", exclude_none=True)
-        messages.append(msg_dict)
-        transcript_msg = dict(msg_dict)
-        transcript_msg["round"] = current_round
-        if usage is not None:
-            transcript_msg["usage"] = usage
-        transcript.append(transcript_msg)
+        if api_provider == "openai":
+            output_items = [_jsonish_dump(item) for item in response.output]
+            # Keep reasoning and function-call items together and unchanged, as
+            # required when continuing a reasoning model after a function call.
+            messages.extend(output_items)
+            transcript_msg = {
+                "role": "assistant",
+                "round": current_round,
+                "response_id": getattr(response, "id", None),
+                "output": output_items,
+                "content": getattr(response, "output_text", ""),
+            }
+            if usage is not None:
+                transcript_msg["usage"] = usage
+            transcript.append(transcript_msg)
+            tool_calls = [
+                item
+                for item in response.output
+                if getattr(item, "type", None) == "function_call"
+            ]
+        else:
+            msg = response.choices[0].message
+            print(msg)
+            msg_dict = msg.model_dump(mode="json", exclude_none=True)
+            messages.append(msg_dict)
+            transcript_msg = dict(msg_dict)
+            transcript_msg["round"] = current_round
+            if usage is not None:
+                transcript_msg["usage"] = usage
+            transcript.append(transcript_msg)
+            tool_calls = msg.tool_calls or []
 
-        tool_calls = msg.tool_calls or []
         if not tool_calls:
             # Nudge once if the model answered in prose instead of using submit_fe_file.
             messages.append({
@@ -580,22 +772,37 @@ def generate_submission(
 
         for call in tool_calls:
             print(f"Executing tool call")
+            if api_provider == "openai":
+                tool_name = call.name
+                raw_arguments = call.arguments
+                tool_call_id = call.call_id
+            else:
+                tool_name = call.function.name
+                raw_arguments = call.function.arguments
+                tool_call_id = call.id
             result, maybe_submission = execute_tool(
-                name=call.function.name,
-                raw_arguments=call.function.arguments,
+                name=tool_name,
+                raw_arguments=raw_arguments,
                 task=task,
             )
 
-            messages.append({
-                "role": "tool",
-                "tool_call_id": call.id,
-                "content": json.dumps(result),
-            })
+            if api_provider == "openai":
+                messages.append({
+                    "type": "function_call_output",
+                    "call_id": tool_call_id,
+                    "output": json.dumps(result),
+                })
+            else:
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call_id,
+                    "content": json.dumps(result),
+                })
             transcript.append({
                 "role": "tool",
                 "round": current_round,
-                "tool_call_id": call.id,
-                "name": call.function.name,
+                "tool_call_id": tool_call_id,
+                "name": tool_name,
                 "result": result,
             })
             if maybe_submission is not None:
@@ -616,6 +823,7 @@ def generate_submission(
     generation = {
         "task_id": task.id,
         "model": model,
+        "api_provider": api_provider,
         "reasoning_effort": reasoning_effort,
         "provider": provider,
         "out_dir": str(out_dir),
@@ -646,6 +854,7 @@ def generate_submission(
                 context={
                     "task_id": task.id,
                     "model": model,
+                    "api_provider": api_provider,
                     "provider": provider,
                     "out_dir": str(out_dir),
                     "rounds_used": rounds_used,
@@ -684,6 +893,7 @@ def run_pipeline(
     max_rounds: int = 8,
     reasoning_effort: str | None = None,
     provider: dict[str, Any] | None = None,
+    api_provider: str = DEFAULT_API_PROVIDER,
     write_visual: bool = False,
 ) -> dict[str, Any]:
     try:
@@ -694,6 +904,7 @@ def run_pipeline(
             max_rounds=max_rounds,
             reasoning_effort=reasoning_effort,
             provider=provider,
+            api_provider=api_provider,
         )
     except Exception as exc:
         write_run_error(
@@ -704,6 +915,7 @@ def run_pipeline(
             context={
                 "task_id": task.id,
                 "model": model,
+                "api_provider": api_provider,
                 "provider": provider,
                 "out_dir": str(out_dir),
                 "max_rounds": max_rounds,
@@ -735,6 +947,7 @@ def run_pipeline(
                 context={
                     "task_id": task.id,
                     "model": model,
+                    "api_provider": api_provider,
                     "provider": provider,
                     "out_dir": str(out_dir),
                     "reasoning_effort": reasoning_effort,
@@ -771,6 +984,7 @@ def print_baselines() -> None:
     payload = {
         name: {
             "model": spec.model,
+            "api_provider": spec.api_provider,
             "reasoning_effort": spec.reasoning_effort,
             "provider": spec.provider,
         }
@@ -832,9 +1046,19 @@ def main() -> None:
     parser.add_argument("--no-write", action="store_true", help="For --stage grade, print grade without writing result JSON.")
     parser.add_argument("--visual", action="store_true", help="Generate visual.svg and visual.off during grading.")
     parser.add_argument(
+        "--api-provider",
+        choices=API_PROVIDERS,
+        default=(
+            os.environ.get("SE_EVAL_API_PROVIDER")
+            or ("openrouter" if os.environ.get("OPENROUTER_MODEL") else None)
+            or ("openai" if os.environ.get("OPENAI_MODEL") else None)
+        ),
+        help="API used for generation. Configured baselines default to their api_provider; exact models default to openrouter.",
+    )
+    parser.add_argument(
         "--model",
         default=os.environ.get("OPENROUTER_MODEL") or os.environ.get("OPENAI_MODEL"),
-        help="OpenRouter model id. Overrides --baseline.",
+        help="Exact model id. Overrides --baseline.",
     )
     parser.add_argument(
         "--baseline",
@@ -849,8 +1073,8 @@ def main() -> None:
     parser.add_argument(
         "--reasoning-effort",
         choices=REASONING_EFFORTS,
-        default=os.environ.get("OPENROUTER_REASONING_EFFORT"),
-        help="Optional OpenRouter reasoning effort for models that support thinking tokens.",
+        default=os.environ.get("SE_EVAL_REASONING_EFFORT") or os.environ.get("OPENROUTER_REASONING_EFFORT"),
+        help="Optional reasoning effort for models that support thinking tokens.",
     )
     parser.add_argument("--max-rounds", type=int, default=8)
     parser.add_argument("--list-baselines", action="store_true")
@@ -893,8 +1117,9 @@ def main() -> None:
             (
                 name,
                 spec.model,
+                args.api_provider or spec.api_provider,
                 resolve_reasoning_effort(cli_effort=args.reasoning_effort, model_spec=spec),
-                spec.provider,
+                spec.provider if (args.api_provider or spec.api_provider) == "openrouter" else None,
             )
             for name, spec in BASELINE_MODELS.items()
         ]
@@ -903,8 +1128,9 @@ def main() -> None:
             (
                 model_name_from_id(args.model),
                 args.model,
+                args.api_provider or DEFAULT_API_PROVIDER,
                 args.reasoning_effort,
-                default_provider_routing(args.model),
+                default_provider_routing(args.model) if (args.api_provider or DEFAULT_API_PROVIDER) == "openrouter" else None,
             )
         ]
         if args.model
@@ -912,14 +1138,19 @@ def main() -> None:
             (
                 args.baseline,
                 resolve_model(None, args.baseline),
+                args.api_provider or BASELINE_MODELS[args.baseline].api_provider,
                 resolve_reasoning_effort(cli_effort=args.reasoning_effort, model_spec=BASELINE_MODELS[args.baseline]),
-                BASELINE_MODELS[args.baseline].provider,
+                (
+                    BASELINE_MODELS[args.baseline].provider
+                    if (args.api_provider or BASELINE_MODELS[args.baseline].api_provider) == "openrouter"
+                    else None
+                ),
             )
         ]
     )
 
     results: list[dict[str, Any]] = []
-    for model_label, model, reasoning_effort, provider in selected_models:
+    for model_label, model, api_provider, reasoning_effort, provider in selected_models:
         out_dir = output_dir(
             args=args,
             task=task,
@@ -935,6 +1166,7 @@ def main() -> None:
                 max_rounds=args.max_rounds,
                 reasoning_effort=reasoning_effort,
                 provider=provider,
+                api_provider=api_provider,
             )
         else:
             result = run_pipeline(
@@ -944,6 +1176,7 @@ def main() -> None:
                 max_rounds=args.max_rounds,
                 reasoning_effort=reasoning_effort,
                 provider=provider,
+                api_provider=api_provider,
                 write_visual=args.visual,
             )
             result = {"model": model, "out_dir": str(out_dir), **result}

@@ -140,8 +140,10 @@ The helper script builds the image and runs the default task:
 ./run.sh
 ```
 
-It reads `OPENROUTER_API_KEY` from the environment, or from a local
-`.openrouter_key` file if present.
+It uses OpenRouter by default and reads `OPENROUTER_API_KEY` or
+`.openrouter_key`. Set `SE_EVAL_API_PROVIDER=openai` to use `OPENAI_API_KEY` or
+`.openai_key`; when only OpenAI credentials are present, the script selects
+OpenAI automatically.
 
 ## Local Setup
 
@@ -178,10 +180,46 @@ PYTHONPATH=src uv run python -m se_eval.run_eval \
   --baseline deepseek-v4-pro
 ```
 
-## Models
+## Models And API Providers
 
-The runner uses OpenRouter's OpenAI-compatible chat completions endpoint.
-Configure authentication with `OPENROUTER_API_KEY`.
+The runner supports OpenRouter through its OpenAI-compatible Chat Completions
+endpoint and native OpenAI through the Responses API. The native path preserves
+reasoning items across tool calls. OpenRouter remains the default for backwards
+compatibility. Select native OpenAI with `--api-provider openai` and configure
+authentication with `OPENAI_API_KEY` (or a local `.openai_key` file):
+
+```bash
+OPENAI_API_KEY=... \
+PYTHONPATH=src uv run python -m se_eval.run_eval \
+  --api-provider openai \
+  --model gpt-5.5 \
+  --task-visibility public \
+  --task two_bubbles_2d
+```
+
+OpenRouter-style `openai/` model prefixes are stripped automatically when the
+native OpenAI provider is selected, so an existing OpenAI baseline can also be
+overridden without changing its model id:
+
+```bash
+OPENAI_API_KEY=... \
+PYTHONPATH=src uv run python -m se_eval.run_eval \
+  --api-provider openai \
+  --baseline gpt-5.5
+```
+
+To make native OpenAI persistent for a configured model, set `api_provider` in
+`eval_config.json`. The `provider` object is specifically OpenRouter routing and
+must be omitted for native providers:
+
+```json
+{
+  "name": "gpt-5.5-native",
+  "model": "gpt-5.5",
+  "api_provider": "openai",
+  "reasoning_effort": "high"
+}
+```
 
 List named baselines:
 
@@ -207,7 +245,7 @@ PYTHONPATH=src uv run python -m se_eval.run_eval \
   --model openai/gpt-5.5
 ```
 
-For models that support reasoning controls through OpenRouter:
+For models that support reasoning controls:
 
 ```bash
 PYTHONPATH=src uv run python -m se_eval.run_eval \
@@ -230,11 +268,25 @@ Named models in `eval_config.json` can also declare a default
 
 When no reasoning option is passed, the runner uses the configured model's
 `reasoning_effort`. If neither the CLI nor config sets one, the request omits
-the OpenRouter `reasoning` object and the provider default applies.
+reasoning controls and the API default applies. Both APIs receive a nested
+`reasoning` object with the selected effort.
+
+Native OpenAI Responses do not include a dollar cost in their usage object, so
+the runner estimates standard-tier cost from input, cached-input, cache-write,
+and output token counts. New runs store the estimate per round in
+`generation.json`; chart generation also derives it for existing native OpenAI
+runs that have token usage but no recorded cost. Unknown models and non-default
+service tiers are left without a cost rather than assigned a guessed price.
+These are estimates and do not include regional-processing uplifts.
 
 Supported environment variables:
 
 - `OPENROUTER_API_KEY`
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `OPENAI_MODEL`
+- `SE_EVAL_API_PROVIDER`
+- `SE_EVAL_REASONING_EFFORT`
 - `OPENROUTER_MODEL`
 - `OPENROUTER_BASELINE`
 - `OPENROUTER_REASONING_EFFORT`

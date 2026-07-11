@@ -128,6 +128,7 @@ def outcome_from_run_dir(
     token_usage = (generation or {}).get("token_usage", {})
     generated_provider = (generation or {}).get("provider")
     configured_provider = configured_model.provider if configured_model is not None else None
+    configured_api_provider = configured_model.api_provider if configured_model is not None else None
 
     error_path = None
     if run_error is not None:
@@ -154,6 +155,9 @@ def outcome_from_run_dir(
         "model": (generation or {}).get("model")
         or error_context.get("model")
         or (configured_model.model if configured_model is not None else model_run_label),
+        "api_provider": (generation or {}).get("api_provider")
+        or error_context.get("api_provider")
+        or configured_api_provider,
         "reasoning_effort": (generation or {}).get("reasoning_effort")
         or error_context.get("reasoning_effort")
         or inferred_reasoning_effort,
