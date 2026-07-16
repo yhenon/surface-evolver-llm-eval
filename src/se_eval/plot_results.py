@@ -108,6 +108,7 @@ PROVIDER_ALIASES = (
     ("mistral", ("mistralai/", "mistral")),
     ("poolside", ("poolside/", "poolside")),
     ("openai", ("openai/", "gpt-", "gpt_", "o1", "o3", "o4")),
+    ("meta", ("meta/", "muse-spark")),
 )
 
 
