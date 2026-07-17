@@ -95,6 +95,21 @@
       "reasoning_effort": "medium"
     },
     {
+      "name": "muse-spark-1.1",
+      "model": "meta/muse-spark-1.1",
+      "reasoning_effort": "high"
+    },
+    {
+      "name": "kimi-k3",
+      "model": "moonshotai/kimi-k3",
+      "provider": {
+        "order": [
+          "moonshotai/int4"
+        ],
+        "allow_fallbacks": false
+      }
+    },
+    {
       "name": "claude-fable-5",
       "model": "anthropic/claude-fable-5",
       "reasoning_effort": "high",
