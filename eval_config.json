@@ -162,6 +162,17 @@
         ],
         "allow_fallbacks": false
       }
+    },
+    {
+      "name": "qwen3.8-27b-xhigh",
+      "model": "qwen/qwen3.8-27b",
+      "reasoning_effort": "xhigh",
+      "provider": {
+        "order": [
+          "alibaba"
+        ],
+        "allow_fallbacks": false
+      }
     }
   ]
 }
