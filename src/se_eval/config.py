@@ -8,7 +8,7 @@ from typing import Any
 
 DEFAULT_CONFIG_PATH = Path("eval_config.json")
 DEFAULT_BASELINE = "gpt-5.5"
-REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
+REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh", "max")
 API_PROVIDERS = ("openrouter", "openai")
 DEFAULT_API_PROVIDER = "openrouter"
 

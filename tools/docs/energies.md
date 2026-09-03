@@ -86,7 +86,3 @@ where P is the ambient pressure, V_0 is the target volume of the body, and V is 
 
 ```
 The ambient pressure can be set in the datafile or with the p command. This energy is calculated only for bodies given a target volume.
-
-## Crystalline energy
-The Evolver can model energies of crystalline surfaces. These energies are proportional to the area of a facet, but they also depend on the direction of the normal. The energy is given by the largest dot product of the surface normal with a set of vectors known as the Wulff vectors. Surface area can be regarded as a crystalline integrand whose Wulff vectors are the unit sphere. See the datafile section on Wulff vectors for more. A surface has either crystalline energy or surface tension, not both. Use is not recommended since nonsmoothness makes Evolver work poorly.
-Example datafile: crystal.fe Back to top of Surface Evolver documentation. Index.

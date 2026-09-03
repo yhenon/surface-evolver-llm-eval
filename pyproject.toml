@@ -3,7 +3,11 @@ name = "se-llm-eval"
 version = "0.1.0"
 description = "Tiny Surface Evolver LLM eval scaffold"
 requires-python = ">=3.12"
-dependencies = ["openai>=2.0.0", "pydantic>=2.8"]
+dependencies = [
+    "openai>=2.0.0",
+    "pydantic>=2.8",
+    "pypdf>=6.14.2",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

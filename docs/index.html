@@ -139,16 +139,6 @@
                 <label for="performance-chart">Performance chart</label>
                 <select id="performance-chart" data-performance-select>
                   <option
-                    data-src="assets/charts/score_vs_total_cost.svg"
-                    data-alt="Scatter plot of mean score versus recorded cost by model with a stepped efficient frontier"
-                    data-caption="Mean score versus total recorded API cost; the stepped line marks the best score available under each budget."
-                  >Score vs cost</option>
-                  <option
-                    data-src="assets/charts/score_vs_total_tokens.svg"
-                    data-alt="Scatter plot of mean score versus total tokens by model"
-                    data-caption="Mean score versus total token usage across all runs for each model."
-                  >Score vs tokens</option>
-                  <option
                     data-src="assets/charts/pass_rate_vs_total_cost.svg"
                     data-alt="Scatter plot of pass rate versus recorded cost by model with a stepped efficient frontier"
                     data-caption="Pass rate versus total recorded API cost; the stepped line marks the best pass rate available under each budget."
@@ -158,6 +148,16 @@
                     data-alt="Scatter plot of pass rate versus total tokens by model"
                     data-caption="Pass rate versus total token usage across all runs for each model."
                   >Pass rate vs tokens</option>
+                  <option
+                    data-src="assets/charts/score_vs_total_cost.svg"
+                    data-alt="Scatter plot of mean score versus recorded cost by model with a stepped efficient frontier"
+                    data-caption="Mean score versus total recorded API cost; the stepped line marks the best score available under each budget."
+                  >Score vs cost</option>
+                  <option
+                    data-src="assets/charts/score_vs_total_tokens.svg"
+                    data-alt="Scatter plot of mean score versus total tokens by model"
+                    data-caption="Mean score versus total token usage across all runs for each model."
+                  >Score vs tokens</option>
                 </select>
               </div>
               <img data-performance-image src="assets/charts/score_vs_total_cost.svg" width="978" height="566" alt="Scatter plot of mean score versus recorded cost by model with a stepped efficient frontier" loading="lazy">

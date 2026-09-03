@@ -52,6 +52,9 @@ INVALID_CHAT_COMPLETION_RETRY_NUDGE = (
     "If you have the final .fe file, call submit_fe_file; otherwise call an "
     "available tool or continue with a concise assistant message."
 )
+PARALLEL_TOOL_CALLS_ERROR = (
+    "Parallel tool calls are not supported. Call one tool at a time."
+)
 
 SYSTEM_PROMPT = """You are being evaluated on your ability to write valid Surface Evolver .fe files.
 
@@ -770,8 +773,14 @@ def generate_submission(
             })
             continue
 
+        rejected_parallel_calls = len(tool_calls) > 1
+        if rejected_parallel_calls:
+            print(
+                f"Rejecting {len(tool_calls)} parallel tool calls; "
+                "the model must retry one at a time."
+            )
+
         for call in tool_calls:
-            print(f"Executing tool call")
             if api_provider == "openai":
                 tool_name = call.name
                 raw_arguments = call.arguments
@@ -780,11 +789,16 @@ def generate_submission(
                 tool_name = call.function.name
                 raw_arguments = call.function.arguments
                 tool_call_id = call.id
-            result, maybe_submission = execute_tool(
-                name=tool_name,
-                raw_arguments=raw_arguments,
-                task=task,
-            )
+            if rejected_parallel_calls:
+                result = {"ok": False, "error": PARALLEL_TOOL_CALLS_ERROR}
+                maybe_submission = None
+            else:
+                print("Executing tool call")
+                result, maybe_submission = execute_tool(
+                    name=tool_name,
+                    raw_arguments=raw_arguments,
+                    task=task,
+                )
 
             if api_provider == "openai":
                 messages.append({
