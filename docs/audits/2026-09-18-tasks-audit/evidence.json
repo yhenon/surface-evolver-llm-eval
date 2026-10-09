@@ -1,0 +1,340 @@
+{
+  "evolver": "/Users/yannhenon/code/surface-evolver-llm-eval/evolver",
+  "sha256": {
+    "tasks_audit/bridge_three_plates.json": "94b0258913923b8f25de3abdc3913d57a91c2102d6577f9c2997b1bca7a9c6c4",
+    "ground_truth_fe/bridge_three_plates.fe": "a1b7e47710b84bf528959f30c8d907de61bd0b19c012ec1ac2ec6f6622295ba4",
+    "tasks_audit/bridge_two_rods.json": "0ff99cf7ae4278dcd82be724cd7680b505796dfc66dfb472c893c039d5c23011",
+    "ground_truth_fe/bridge_two_rods.fe": "fd51c2670e91be95a321b3592abc451e0312fbfd30e9ec6e87891ee0757c85b4",
+    "tasks_audit/cross_slot.json": "950e9563456e586cbb2e11594694ed9ba79a4b3fec6fc15c8fa9fce904209e6f",
+    "ground_truth_fe/cross_slot.fe": "c68f38cac0f6a758a88678dcde93c373510fce79f36657d4e3527df43d732014",
+    "tasks_audit/cube.json": "b1391d540cbdc56b8ff76101b46f93609a9590bad4cca805b57248dfbee2c0a3",
+    "ground_truth_fe/cube.fe": "3fb0730beaad1753c3b4aa0ae8b085a4028bc531b3c5a9c2bc1aef739eb751b9",
+    "tasks_audit/fiber_bridge_crossed.json": "e147455cdfda94fac1c5e2d70e29b7f4c341ded374c9ea1207035c915240df41",
+    "ground_truth_fe/fiber_bridge_crossed.fe": "529f71fac4fbc64320c074a59f90127b92207695dc8878c2b615f3423ffe058e",
+    "tasks_audit/pyramid_mound.json": "b5929ba4d53c1393068c32055602fe1944e49684a4ae77632a18b6b7866f9115",
+    "ground_truth_fe/pyramid_mound.fe": "3d0f6911aa96d0e6bf939a23bac241d2dd811989b4f70df5ba9f6dfe2d99a6cf",
+    "tasks_audit/square_well.json": "a9addaa3406e542b1d3adbf266fcd002747dec15712f9f8debde93bae55add1f",
+    "ground_truth_fe/square_well.fe": "ed23c3349b7fe8513d8424affc1af02e8a0206b524c9bfb42fb4adb7e15bc5ca",
+    "tasks_audit/w_groove.json": "aac165f6055fcff1273374367af7f2f342c01baf3ade2cbebb80a202d28f2795",
+    "ground_truth_fe/w_groove.fe": "6203827a6bbc97fd98d42d1e0d73aa2b6d42b881863c61ea022f1277604fa2b4"
+  },
+  "baselines": {
+    "bridge_three_plates": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "plate_r_default": 0.6,
+        "half_w_default": 0.3,
+        "half_h_default": 0.45,
+        "z_mid_default": 0.0,
+        "target_vol_default": 1.0,
+        "angle1_default": 60.0,
+        "angle2_default": 60.0,
+        "angle3_default": 60.0,
+        "body_1_volume": 0.9999999999997751,
+        "total_energy": 2.472398310771618,
+        "total_area": 3.893126852435107
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.39998362492769957
+    },
+    "bridge_two_rods": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "fiber_r_default": 0.5,
+        "center_spacing_default": 3.0,
+        "target_vol_default": 1.0,
+        "angle_default": 60.0,
+        "body_1_volume": 0.9999999999999998,
+        "total_energy": 4.744563962994836,
+        "total_area": 5.439578887870683
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 1.275569874793291
+    },
+    "cross_slot": {
+      "passed": false,
+      "score": 0.6,
+      "static_failures": [],
+      "dynamic_ok": false,
+      "measurements": {
+        "channel_width_default": 1.0,
+        "contact_angle_default": 60.0,
+        "grav_default": 0.0,
+        "target_vol_default": 1.5,
+        "arm_extent_default": 1.5,
+        "z_wall_end_default": 0.25,
+        "z_wall_corner_default": 0.65,
+        "z_top_default": 1.2,
+        "body_1_volume": 0.37500000000000006,
+        "total_area": 1.280327459527903,
+        "total_energy": 0.3864484028705155
+      },
+      "dynamic_failures": [
+        "total_energy: expected 0.511448402870516 +/- 0.05, got 0.3864484028705155"
+      ],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.49134662514552474
+    },
+    "cube": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "body_1_volume": 1.0,
+        "total_area": 6.0
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.012049916666001081
+    },
+    "fiber_bridge_crossed": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "fiber_r_default": 0.5,
+        "center_spacing_default": 2.0,
+        "target_vol_default": 1.0,
+        "angle_default": 60.0,
+        "theta_half_default": 0.55,
+        "axial_half_default": 0.55,
+        "body_1_volume": 0.9999999999999999,
+        "total_energy": 3.269536054592307,
+        "total_area": 4.22725978908558
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 1.307452832814306
+    },
+    "pyramid_mound": {
+      "passed": false,
+      "score": 0.6,
+      "static_failures": [],
+      "dynamic_ok": false,
+      "measurements": {
+        "slope_default": 0.5,
+        "angle_default": 110.0,
+        "body_1_volume": 0.8000000000001082,
+        "total_energy": 4.165328195715745,
+        "total_area": 3.9750467366760995
+      },
+      "dynamic_failures": [
+        "total_energy: expected 4.07911134282235 +/- 0.05, got 4.165328195715745"
+      ],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.050241291988641024
+    },
+    "square_well": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "angle_default": 50.0,
+        "tens_default": 1.0,
+        "aa_default": 1.0,
+        "body_1_volume": 1.0,
+        "total_area": 1.1382090365638065,
+        "total_energy": 3.2039264815132396
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.4047132092528045
+    },
+    "w_groove": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "contact_angle_default": 70.0,
+        "groove_width_default": 1.0,
+        "groove_depth_default": 0.5,
+        "drop_length_default": 2.0,
+        "top_height_default": 0.75,
+        "target_vol_default": 1.0,
+        "x_left_default": -1.0,
+        "x_right_default": 1.0,
+        "y_ridge_upper_default": 1.0,
+        "y_valley_1_default": 0.5,
+        "y_ridge_mid_default": 0.0,
+        "y_valley_2_default": -0.5,
+        "y_ridge_lower_default": -1.0,
+        "body_1_volume": 0.9999999999999996,
+        "total_area": 5.331747030882571,
+        "total_energy": 3.6780076203520617
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 2.0072143329307437
+    }
+  },
+  "probes": {
+    "cube_facets_alias": {
+      "passed": false,
+      "score": 0.7,
+      "static_failures": [
+        "missing required substring: 'faces'"
+      ],
+      "dynamic_ok": true,
+      "measurements": {
+        "body_1_volume": 1.0,
+        "total_area": 6.0
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.012796041555702686
+    },
+    "cube_volume_whitespace": {
+      "passed": false,
+      "score": 0.7,
+      "static_failures": [
+        "missing required substring: 'volume 1'"
+      ],
+      "dynamic_ok": true,
+      "measurements": {
+        "body_1_volume": 1.0,
+        "total_area": 6.0
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.009892541915178299
+    },
+    "cube_volume_expression": {
+      "passed": false,
+      "score": 0.7,
+      "static_failures": [
+        "missing required substring: 'volume 1'"
+      ],
+      "dynamic_ok": true,
+      "measurements": {
+        "body_1_volume": 1.0,
+        "total_area": 6.0
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.010061417240649462
+    },
+    "cube_translated_x_plus_10": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "body_1_volume": 1.0,
+        "total_area": 6.0
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.00978541700169444
+    },
+    "cube_extra_body": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "body_1_volume": 1.0,
+        "total_area": 6.0
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.010102833155542612
+    },
+    "cube_executes_recalc_on_load": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "body_1_volume": 1.0,
+        "total_area": 6.0
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.009980708826333284
+    },
+    "three_plates_equivalent_cosine": {
+      "passed": false,
+      "score": 0.7,
+      "static_failures": [
+        "missing required substring: 'cos(angle1*pi/180)'"
+      ],
+      "dynamic_ok": true,
+      "measurements": {
+        "plate_r_default": 0.6,
+        "half_w_default": 0.3,
+        "half_h_default": 0.45,
+        "z_mid_default": 0.0,
+        "target_vol_default": 1.0,
+        "angle1_default": 60.0,
+        "angle2_default": 60.0,
+        "angle3_default": 60.0,
+        "body_1_volume": 0.9999999999997751,
+        "total_energy": 2.472398310771618,
+        "total_area": 3.893126852435107
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.366072041913867
+    },
+    "pyramid_mound_extra_evolution": {
+      "passed": true,
+      "score": 1.0,
+      "static_failures": [],
+      "dynamic_ok": true,
+      "measurements": {
+        "slope_default": 0.5,
+        "angle_default": 110.0,
+        "body_1_volume": 0.8,
+        "total_energy": 4.0998080721901085,
+        "total_area": 3.9292228570738295
+      },
+      "dynamic_failures": [],
+      "evolver_ok": true,
+      "stderr": "",
+      "elapsed_seconds": 0.570432832930237
+    },
+    "bridge_two_rods_extra_evolution": {
+      "exception": "TypeError: cannot use a string pattern on a bytes-like object",
+      "elapsed_seconds": 10.005061083007604
+    },
+    "w_groove_independent_volume": {
+      "ok": true,
+      "stderr": "",
+      "measurements": [
+        "AUDIT initial 3 3.999999999999984",
+        "AUDIT final 0.99999999999999956 1.8672424881269916"
+      ],
+      "version": "Surface Evolver Version 2.70, August 25, 2013, 64-bit"
+    },
+    "timeout_handling": {
+      "exception": "TypeError: cannot use a string pattern on a bytes-like object"
+    }
+  }
+}

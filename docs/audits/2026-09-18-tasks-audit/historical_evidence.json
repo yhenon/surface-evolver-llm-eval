@@ -1,0 +1,190 @@
+{
+  "runs/claude-fable-5/private_cross_slot/result.json": {
+    "current_pass": true,
+    "metrics": {
+      "channel_width_default": 1.0,
+      "contact_angle_default": 60.0,
+      "grav_default": 0.0,
+      "target_vol_default": 1.5,
+      "arm_extent_default": 1.5,
+      "z_wall_end_default": 0.25,
+      "z_wall_corner_default": 0.65,
+      "z_top_default": 1.2,
+      "body_1_volume": 0.375,
+      "total_area": 1.2803274595279148,
+      "total_energy": 0.5114484028705156
+    }
+  },
+  "runs/gpt-5.6-sol-xhigh/private_cross_slot/result.json": {
+    "current_pass": true,
+    "metrics": {
+      "channel_width_default": 1.0,
+      "contact_angle_default": 60.0,
+      "grav_default": 0.0,
+      "target_vol_default": 1.5,
+      "arm_extent_default": 1.5,
+      "z_wall_end_default": 0.25,
+      "z_wall_corner_default": 0.65,
+      "z_top_default": 1.2,
+      "body_1_volume": 0.375,
+      "total_area": 1.280327459527897,
+      "total_energy": 0.5114484028705155
+    }
+  },
+  "runs/claude-fable-5/private_w_groove/result.json": {
+    "current_pass": true,
+    "metrics": {
+      "contact_angle_default": 70.0,
+      "groove_width_default": 1.0,
+      "groove_depth_default": 0.5,
+      "drop_length_default": 2.0,
+      "top_height_default": 0.75,
+      "target_vol_default": 1.0,
+      "x_left_default": -1.0,
+      "x_right_default": 1.0,
+      "y_ridge_upper_default": 1.0,
+      "y_valley_1_default": 0.5,
+      "y_ridge_mid_default": 0.0,
+      "y_valley_2_default": -0.5,
+      "y_ridge_lower_default": -1.0,
+      "body_1_volume": 0.9999999999999997,
+      "total_area": 5.332218122722248,
+      "total_energy": 3.678012919297192
+    },
+    "volume_probe": {
+      "ok": true,
+      "values": [
+        "AUDIT 0.99999999999999967 1.8674948003449225"
+      ],
+      "stderr": ""
+    }
+  },
+  "runs/gpt-5.5/private_w_groove/result.json": {
+    "current_pass": true,
+    "metrics": {
+      "contact_angle_default": 70.0,
+      "groove_width_default": 1.0,
+      "groove_depth_default": 0.5,
+      "drop_length_default": 2.0,
+      "top_height_default": 0.75,
+      "target_vol_default": 1.0,
+      "x_left_default": -1.0,
+      "x_right_default": 1.0,
+      "y_ridge_upper_default": 1.0,
+      "y_valley_1_default": 0.5,
+      "y_ridge_mid_default": 0.0,
+      "y_valley_2_default": -0.5,
+      "y_ridge_lower_default": -1.0,
+      "body_1_volume": 0.9999999999999998,
+      "total_area": 5.332218122721952,
+      "total_energy": 3.678012919297189
+    },
+    "volume_probe": {
+      "ok": true,
+      "values": [
+        "AUDIT 0.99999999999999978 1.8674948003447294"
+      ],
+      "stderr": ""
+    }
+  },
+  "runs/gpt-5.6-sol-xhigh/private_w_groove/result.json": {
+    "current_pass": true,
+    "metrics": {
+      "contact_angle_default": 70.0,
+      "groove_width_default": 1.0,
+      "groove_depth_default": 0.5,
+      "drop_length_default": 2.0,
+      "top_height_default": 0.75,
+      "target_vol_default": 1.0,
+      "x_left_default": -1.0,
+      "x_right_default": 1.0,
+      "y_ridge_upper_default": 1.0,
+      "y_valley_1_default": 0.5,
+      "y_ridge_mid_default": 0.0,
+      "y_valley_2_default": -0.5,
+      "y_ridge_lower_default": -1.0,
+      "body_1_volume": 0.9999999999999996,
+      "total_area": 5.332218122722329,
+      "total_energy": 3.6780129192971933
+    },
+    "volume_probe": {
+      "ok": true,
+      "values": [
+        "AUDIT 0.99999999999999956 1.86749480034499"
+      ],
+      "stderr": ""
+    }
+  },
+  "runs/gpt-5.6-terra-xhigh/private_w_groove/result.json": {
+    "current_pass": true,
+    "metrics": {
+      "contact_angle_default": 70.0,
+      "groove_width_default": 1.0,
+      "groove_depth_default": 0.5,
+      "drop_length_default": 2.0,
+      "top_height_default": 0.75,
+      "target_vol_default": 1.0,
+      "x_left_default": -1.0,
+      "x_right_default": 1.0,
+      "y_ridge_upper_default": 1.0,
+      "y_valley_1_default": 0.5,
+      "y_ridge_mid_default": 0.0,
+      "y_valley_2_default": -0.5,
+      "y_ridge_lower_default": -1.0,
+      "body_1_volume": 0.9999999999999997,
+      "total_area": 5.332174803212566,
+      "total_energy": 3.678012836250121
+    },
+    "volume_probe": {
+      "ok": true,
+      "values": [
+        "AUDIT 0.99999999999999967 1.8674745553952241"
+      ],
+      "stderr": ""
+    }
+  },
+  "runs/kimi-k3/private_w_groove/result.json": {
+    "current_pass": true,
+    "metrics": {
+      "contact_angle_default": 70.0,
+      "groove_width_default": 1.0,
+      "groove_depth_default": 0.5,
+      "drop_length_default": 2.0,
+      "top_height_default": 0.75,
+      "target_vol_default": 1.0,
+      "x_left_default": -1.0,
+      "x_right_default": 1.0,
+      "y_ridge_upper_default": 1.0,
+      "y_valley_1_default": 0.5,
+      "y_ridge_mid_default": 0.0,
+      "y_valley_2_default": -0.5,
+      "y_ridge_lower_default": -1.0,
+      "body_1_volume": 0.9999999999999994,
+      "total_area": 5.332174803212941,
+      "total_energy": 3.6780128362501268
+    },
+    "volume_probe": {
+      "ok": true,
+      "values": [
+        "AUDIT 0.99999999999999944 1.8674745553954633"
+      ],
+      "stderr": ""
+    }
+  },
+  "cross_slot_constant_offset_probe": {
+    "source": "runs/claude-fable-5/private_cross_slot/submission.fe",
+    "change": "Insert quantity central_floor_offset energy function WALLT*HW^2 after gravity_constant grav",
+    "evolver_ok": true,
+    "body_volume": 0.37499999999999994,
+    "total_area": 1.2803274595279066,
+    "total_energy": 0.38644840287051596
+  },
+  "cross_slot_energy_only_historical_failure": {
+    "source": "runs/gemini-3.8-flash/private_cross_slot/result.json",
+    "static_ok": true,
+    "body_volume": 0.375,
+    "total_area": 1.2803274595279648,
+    "total_energy": 0.3864484028705173,
+    "only_failure": "total_energy: expected 0.511448402870516 +/- 0.05, got 0.3864484028705173"
+  }
+}

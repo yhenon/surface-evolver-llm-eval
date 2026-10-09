@@ -189,7 +189,21 @@
         ],
         "allow_fallbacks": false
       }
-
+    },
+    {
+      "name": "deepseek-v4.1-flash",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "reasoning_effort": "high"
+    },
+    {
+      "name": "mistral-large-4-0",
+      "model": "mistralai/mistral-large-4-0",
+      "provider": {
+        "order": [
+          "mistral/zdr"
+        ],
+        "allow_fallbacks": false
+      }
     }
   ]
 }
