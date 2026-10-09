@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 CHARTS = (
+    "performance.html",
     "by_model.svg",
     "model_tool_usage.svg",
     "score_vs_total_tokens.svg",

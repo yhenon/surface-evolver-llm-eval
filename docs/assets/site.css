@@ -506,8 +506,8 @@ tbody tr:last-child td {
   }
 
   .chart-block img[src$=".svg"] {
-    max-width: 100%;
-    width: 100%;
+    max-width: none;
+    width: auto;
   }
 
   .section {
@@ -521,3 +521,5 @@ tbody tr:last-child td {
     padding-right: 18px;
   }
 }
+
+.performance-chart { display: block; width: 100%; height: 740px; border: 0; border-radius: 6px; }

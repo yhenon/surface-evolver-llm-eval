@@ -1,114 +1,114 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="929" height="856" viewBox="0 0 929 856">
+<svg xmlns="http://www.w3.org/2000/svg" width="950" height="856" viewBox="0 0 950 856">
 <rect width="100%" height="100%" fill="#fbfcfd"/>
 <style>text{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-rendering:geometricPrecision;font-kerning:normal}.numeric{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"kern" 1}</style>
 <text x="24.00" y="34.00" font-size="20" font-weight="700" text-anchor="start" fill="#18202a">Results By Task</text>
-<text x="189.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#475467">Pass rate</text>
-<text x="271.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#98a2b3">Mean score</text>
-<text x="727.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#475467">Outcome</text>
-<line x1="189.00" y1="60" x2="189.00" y2="814" stroke="#e3e7eb"/>
-<text x="189.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">0%</text>
-<line x1="319.00" y1="60" x2="319.00" y2="814" stroke="#e3e7eb"/>
-<text x="319.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">25%</text>
-<line x1="449.00" y1="60" x2="449.00" y2="814" stroke="#e3e7eb"/>
-<text x="449.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">50%</text>
-<line x1="579.00" y1="60" x2="579.00" y2="814" stroke="#e3e7eb"/>
-<text x="579.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">75%</text>
-<line x1="709.00" y1="60" x2="709.00" y2="814" stroke="#e3e7eb"/>
-<text x="709.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">100%</text>
+<text x="210.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#475467">Pass rate</text>
+<text x="292.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#98a2b3">Mean score</text>
+<text x="748.00" y="58.00" font-size="12" font-weight="400" text-anchor="start" fill="#475467">Outcome</text>
+<line x1="210.00" y1="60" x2="210.00" y2="814" stroke="#e3e7eb"/>
+<text x="210.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">0%</text>
+<line x1="340.00" y1="60" x2="340.00" y2="814" stroke="#e3e7eb"/>
+<text x="340.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">25%</text>
+<line x1="470.00" y1="60" x2="470.00" y2="814" stroke="#e3e7eb"/>
+<text x="470.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">50%</text>
+<line x1="600.00" y1="60" x2="600.00" y2="814" stroke="#e3e7eb"/>
+<text x="600.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">75%</text>
+<line x1="730.00" y1="60" x2="730.00" y2="814" stroke="#e3e7eb"/>
+<text x="730.00" y="836.00" font-size="11" font-weight="400" text-anchor="middle" fill="#667085">100%</text>
 <text x="24.00" y="98.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">public/two_bubbles_2d</text>
-<rect x="189" y="79" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="97" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="79" width="501.43" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="97" width="501.43" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="100.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">27/28 pass, score 0.96</text>
+<rect x="210" y="79" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="97" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="79" width="501.43" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="97" width="501.43" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="100.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">27/28 pass, score 0.96</text>
 <text x="24.00" y="144.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/droplet_01</text>
-<rect x="189" y="125" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="143" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="125" width="427.14" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="143" width="440.14" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="146.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">23/28 pass, score 0.85</text>
+<rect x="210" y="125" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="143" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="125" width="427.14" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="143" width="440.14" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="146.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">23/28 pass, score 0.85</text>
 <text x="24.00" y="190.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/well_00</text>
-<rect x="189" y="171" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="189" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="171" width="297.14" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="189" width="397.43" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="192.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">16/28 pass, score 0.76</text>
+<rect x="210" y="171" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="189" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="171" width="297.14" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="189" width="397.43" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="192.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">16/28 pass, score 0.76</text>
 <text x="24.00" y="236.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_01</text>
-<rect x="189" y="217" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="235" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="217" width="204.29" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="235" width="332.43" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="238.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">11/28 pass, score 0.64</text>
+<rect x="210" y="217" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="235" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="217" width="204.29" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="235" width="332.43" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="238.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">11/28 pass, score 0.64</text>
 <text x="24.00" y="282.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/droplet_02</text>
-<rect x="189" y="263" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="281" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="263" width="204.29" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="281" width="315.71" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="284.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">11/28 pass, score 0.61</text>
+<rect x="210" y="263" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="281" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="263" width="204.29" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="281" width="315.71" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="284.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">11/28 pass, score 0.61</text>
 <text x="24.00" y="328.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_00</text>
-<rect x="189" y="309" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="327" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="309" width="204.29" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="327" width="299.00" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="330.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">11/28 pass, score 0.58</text>
+<rect x="210" y="309" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="327" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="309" width="204.29" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="327" width="299.00" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="330.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">11/28 pass, score 0.58</text>
 <text x="24.00" y="374.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/droplet_03</text>
-<rect x="189" y="355" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="373" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="355" width="204.29" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="373" width="287.86" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="376.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">11/28 pass, score 0.55</text>
+<rect x="210" y="355" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="373" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="355" width="204.29" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="373" width="287.86" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="376.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">11/28 pass, score 0.55</text>
 <text x="24.00" y="420.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_05</text>
-<rect x="189" y="401" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="419" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="401" width="185.71" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="419" width="286.00" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="422.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">10/28 pass, score 0.55</text>
+<rect x="210" y="401" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="419" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="401" width="185.71" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="419" width="286.00" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="422.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">10/28 pass, score 0.55</text>
 <text x="24.00" y="466.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/droplet_00</text>
-<rect x="189" y="447" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="465" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="447" width="167.14" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="465" width="295.29" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="468.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">9/28 pass, score 0.57</text>
+<rect x="210" y="447" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="465" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="447" width="167.14" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="465" width="295.29" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="468.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">9/28 pass, score 0.57</text>
 <text x="24.00" y="512.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/groove_01</text>
-<rect x="189" y="493" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="511" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="493" width="167.14" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="511" width="267.43" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="514.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">9/28 pass, score 0.51</text>
+<rect x="210" y="493" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="511" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="493" width="167.14" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="511" width="267.43" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="514.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">9/28 pass, score 0.51</text>
 <text x="24.00" y="558.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_03</text>
-<rect x="189" y="539" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="557" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="539" width="130.00" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="557" width="274.86" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="560.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">7/28 pass, score 0.53</text>
+<rect x="210" y="539" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="557" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="539" width="130.00" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="557" width="274.86" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="560.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">7/28 pass, score 0.53</text>
 <text x="24.00" y="604.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/groove_00</text>
-<rect x="189" y="585" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="603" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="585" width="92.86" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="603" width="276.71" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="606.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">5/28 pass, score 0.53</text>
+<rect x="210" y="585" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="603" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="585" width="92.86" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="603" width="276.71" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="606.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">5/28 pass, score 0.53</text>
 <text x="24.00" y="650.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/groove_03</text>
-<rect x="189" y="631" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="649" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="631" width="92.86" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="649" width="193.14" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="652.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">5/28 pass, score 0.37</text>
+<rect x="210" y="631" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="649" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="631" width="92.86" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="649" width="193.14" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="652.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">5/28 pass, score 0.37</text>
 <text x="24.00" y="696.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_02</text>
-<rect x="189" y="677" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="695" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="677" width="74.29" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="695" width="230.29" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="698.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">4/28 pass, score 0.44</text>
+<rect x="210" y="677" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="695" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="677" width="74.29" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="695" width="230.29" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="698.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">4/28 pass, score 0.44</text>
 <text x="24.00" y="742.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/bridge_04</text>
-<rect x="189" y="723" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="741" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="723" width="55.71" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="741" width="195.00" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="744.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">3/28 pass, score 0.38</text>
+<rect x="210" y="723" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="741" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="723" width="55.71" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="741" width="195.00" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="744.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">3/28 pass, score 0.38</text>
 <text x="24.00" y="788.00" font-size="12" font-weight="600" text-anchor="start" fill="#18202a">private/groove_02</text>
-<rect x="189" y="769" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="787" width="520" height="13" rx="2" fill="#eef1f4"/>
-<rect x="189" y="769" width="37.14" height="13" rx="2" fill="#1b998b"/>
-<rect x="189" y="787" width="176.43" height="13" rx="2" fill="#4f6bed"/>
-<text class="numeric" x="727.00" y="790.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">2/28 pass, score 0.34</text>
+<rect x="210" y="769" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="787" width="520" height="13" rx="2" fill="#eef1f4"/>
+<rect x="210" y="769" width="37.14" height="13" rx="2" fill="#1b998b"/>
+<rect x="210" y="787" width="176.43" height="13" rx="2" fill="#4f6bed"/>
+<text class="numeric" x="748.00" y="790.00" font-size="11" font-weight="400" text-anchor="start" fill="#344054">2/28 pass, score 0.34</text>
 </svg>
